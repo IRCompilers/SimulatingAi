@@ -8,45 +8,53 @@ from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src.Rag.rag_config import RagConfig
+
 
 class RAG:
-    def __init__(self, data: pd.DataFrame = None, use_persistence: bool = True):
+    def __init__(self, data: pd.DataFrame = None, config: RagConfig = None):
 
-        if use_persistence:
+        self.config = config
+
+        if not config:
+            config = RagConfig(use_persistence=False, use_llm=False)
+
+        if config.use_persistence:
             self.client = MongoClient('mongodb://localhost:27017/')
-            self.db = self.client['RAG']
-            self.collection = self.db['medications']
+            self.collection = self.client['RAG']['medications']
 
         self.embedding_model = SentenceTransformer("thenlper/gte-large")
 
         if data is None:
-            if use_persistence:
+            if config.use_persistence:
                 self.data = pd.DataFrame(list(self.collection.find()))
                 self.data.drop(columns='_id', inplace=True)
             else:
                 raise ValueError("Data cannot be None if use_persistence is False: data must be provided.")
 
         else:
-
-            print("Data provided.")
-
             data = self._attach_embedding(data)
 
-            if use_persistence:
+            if config.use_persistence:
                 self._reset_domain(data)
 
             self.data = data
 
-    def query_medications(self, symptoms: list[str], top_k: int = 5):
-        query = " , ".join(symptoms)
-        top_k_results = self._query_vector(query, top_k)
-        llm_answer = self._query_llm(query, top_k_results)
+    def query_medications(self, symptoms: list[str]):
 
-        print("answer: ", llm_answer.choices[0].message.content)
+        if self.config.use_llm:
+            query = " , ".join(symptoms)
 
-        return self._strip_llm_answer(llm_answer, len(symptoms))
+            amount = len(symptoms)
+            top_k_results = self._query_vector(query, amount)
+            llm_answer = self._query_llm(query, top_k_results)
+            return self._strip_llm_answer(llm_answer, amount)
+        else:
+            top_k_results = [self._query_vector(symptom) for symptom in symptoms]
+            return [df['name'].iloc[0] for df in top_k_results]
 
-    def _query_llm(self, query: str, top_docs: pd.DataFrame):
+    @staticmethod
+    def _query_llm(query: str, top_docs: pd.DataFrame):
         context = ""
 
         names = top_docs["name"].tolist()
@@ -57,7 +65,6 @@ class RAG:
             context += f"Name:{names[i]},  Id: {ids[i]}, Description: {descriptions[i]}\n"
 
         client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-        print("query: ", query)
 
         completion = client.chat.completions.create(
             model="local-model",
@@ -66,7 +73,7 @@ class RAG:
                  "content": f"{context}. Model should recommend a medication for each of the symptoms: {query}"},
                 {"role": "user", "content": query}
             ],
-            temperature=0.9,
+            temperature=0.7,
         )
 
         return completion
@@ -125,6 +132,7 @@ if __name__ == '__main__':
     os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
     # data = pd.read_csv('medications.csv')
-    rag = RAG()
+    rag_config = RagConfig(use_persistence=True, use_llm=False)
+    rag = RAG(config=rag_config)
     result = rag.query_medications(['flu', 'fever'])
     print(result)
