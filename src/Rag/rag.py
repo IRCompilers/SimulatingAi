@@ -1,6 +1,7 @@
 import os
 import string
 
+import dill
 import pandas as pd
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
@@ -23,15 +24,22 @@ class RAG:
             self.client = MongoClient('mongodb://localhost:27017/')
             self.collection = self.client['RAG']['medications']
 
-        self.embedding_model = SentenceTransformer("thenlper/gte-large")
+        # Embedding model
+        if os.path.exists('embedding_model.pkl'):
+            with open('embedding_model.pkl', 'rb') as f:
+                self.embedding_model = dill.load(f)
+        else:
+            self.embedding_model = SentenceTransformer("thenlper/gte-large")
+            with open('embedding_model.pkl', 'wb') as f:
+                dill.dump(self.embedding_model, f)
 
+        # Data loading
         if data is None:
             if config.use_persistence:
                 self.data = pd.DataFrame(list(self.collection.find()))
                 self.data.drop(columns='_id', inplace=True)
             else:
                 raise ValueError("Data cannot be None if use_persistence is False: data must be provided.")
-
         else:
             data = self._attach_embedding(data)
 
@@ -40,7 +48,7 @@ class RAG:
 
             self.data = data
 
-    def query_medications(self, symptoms: list[str]):
+    def query_medications_for_patients(self, symptoms: list[str]) -> list[str]:
 
         if self.config.use_llm:
             query = " , ".join(symptoms)
@@ -134,5 +142,5 @@ if __name__ == '__main__':
     # data = pd.read_csv('medications.csv')
     rag_config = RagConfig(use_persistence=True, use_llm=False)
     rag = RAG(config=rag_config)
-    result = rag.query_medications(['flu', 'fever'])
+    result = rag.query_medications_for_patients(['flu', 'fever'])
     print(result)
