@@ -58,7 +58,7 @@ class RAG:
             llm_answer = self._query_llm(query, top_k_results)
             return self._strip_llm_answer(llm_answer, amount)
         else:
-            top_k_results = [self._query_vector(symptom) for symptom in symptoms]
+            top_k_results = [self._query_vector(symptom, 1) for symptom in symptoms]
             return [df['name'].iloc[0] for df in top_k_results]
 
     @staticmethod
