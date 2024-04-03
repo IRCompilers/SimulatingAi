@@ -17,6 +17,21 @@ import os
 
 import google.generativeai as genai
 
+example = [
+    "{"
+    "query: \"Given this context:Name:Muchiol,  Id: 13, Description: Cures osteoporosis. Side effects: dizziness, dry mouth. "
+    "Name:Propol,  Id: 4, Description: Cures flu. Side effects: muscle pain, fever. "
+    "Name:Kisuel,  Id: 12, Description: Cures arthritis. Side effects: muscle pain, fever. "
+    "Name:Pepsiclox,  Id: 16, Description: Cures fever. Side effects: muscle pain, fever. "
+    "Name:Glucose,  Id: 2, Description: Cures fever. Side effects: fatigue, dry mouth. "
+    "Name:June,  Id: 8, Description: Cures asthma. Side effects: muscle pain, fever."
+    "Name:Urinol,  Id: 15, Description: Cures diabetes. Side effects: drowsiness, dry eyes."
+    "Name:Licuogex,  Id: 5, Description: Cures cough. Side effects: dizziness, dry mouth."
+    "These are the input symptoms: osteoporosis and cough , diabetes and osteoporosis , fever , diabetes and fever\""
+    "answer: \"Muchiol and Licuogex, Urinol and Muchiol, Pepsiclox, Urniol and Pepsiclox\"",
+    "}"
+]
+
 
 class RAG:
     def __init__(self, data: pd.DataFrame = None, config: RagConfig = None):
@@ -57,7 +72,7 @@ class RAG:
 
             self.data = data
 
-    def query_medications_for_patients(self, symptoms: list[str]) -> list[str]:
+    def query_medications_for_patients(self, symptoms: list[str]) -> list[list[str]]:
 
         if self.config.use_llm:
             query = " , ".join(symptoms)
@@ -81,7 +96,7 @@ class RAG:
             context += f"Name:{names[i]},  Id: {ids[i]}, Description: {descriptions[i]}\n"
 
         query = (
-            f"Given this context:{context}. Return only the names of the medications that could best cure each of the following comma separated symptoms from"
+            f"Given this example {example}. Given this context:{context} Return only the names of the medications that could best cure each of the following comma separated symptoms from"
             f" each patient. Return only comma separated names in the same order in which they appear in the input. These are the input symptoms: {query}")
 
         print("Query: ", query)
@@ -91,20 +106,6 @@ class RAG:
         print("Response: ", response)
 
         return response.text
-
-        # client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-        #
-        # completion = client.chat.completions.create(
-        #     model="local-model",
-        #     messages=[
-        #         {"role": "system",
-        #          "content": f"{context}. Model should recommend a medication for each of the symptoms: {query}"},
-        #         {"role": "user", "content": query}
-        #     ],
-        #     temperature=0.7,
-        # )
-        #
-        # return completion
 
     def _query_vector(self, query: str, top_k: int = 5) -> pd.DataFrame:
         query_embedding = self._get_embedding(query)
@@ -136,21 +137,25 @@ class RAG:
 
         return embedding.tolist()
 
-    def _strip_llm_answer(self, completion: str, amount: int):
+    def _strip_llm_answer(self, completion: str, amount: int) -> list[list[str]]:
 
         output = []
 
-        for word in completion.split():
-            word = word.translate(str.maketrans('', '', string.punctuation)).strip("*")
+        for answer in completion.split(','):
+            words = answer.split(" ")
+            patient_output = []
 
-            if word in self.data['name'].tolist():
-                output.append(word)
+            for word in words:
+                if word.strip() in self.data['name'].tolist():
+                    patient_output.append(word.strip())
 
-                if len(output) == amount:
-                    break
+            output.append(patient_output)
+
+            if len(output) == amount:
+                break
 
         while len(output) < amount:
-            output.append(None)
+            output.append([])
 
         return output
 
@@ -163,5 +168,6 @@ if __name__ == '__main__':
     # data = pd.read_csv('medications.csv')
     rag_config = RagConfig(use_persistence=True, use_llm=True, gemini_api_key=api_key)
     rag = RAG(config=rag_config)
-    result = rag.query_medications_for_patients(['osteoporosis', 'diabetes', 'fever', 'diabetes and fever'])
+    result = rag.query_medications_for_patients(
+        ['osteoporosis and cough', 'diabetes and osteoporosis', 'fever and cough and diabetes', 'diabetes and fever', 'arthritis'])
     print("Result: ", result)
