@@ -3,6 +3,7 @@ import string
 
 import dill
 import pandas as pd
+from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 from pymongo import MongoClient
@@ -11,11 +12,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from src.Rag.rag_config import RagConfig
 
+from dotenv import load_dotenv
+import os
+
+import google.generativeai as genai
+
 
 class RAG:
     def __init__(self, data: pd.DataFrame = None, config: RagConfig = None):
 
         self.config = config
+
+        genai.configure(api_key=config.gemini_api_key)
+        self.model = genai.GenerativeModel('gemini-pro')
 
         if not config:
             config = RagConfig(use_persistence=False, use_llm=False)
@@ -54,15 +63,14 @@ class RAG:
             query = " , ".join(symptoms)
 
             amount = len(symptoms)
-            top_k_results = self._query_vector(query, amount)
+            top_k_results = self._query_vector(query, amount * 2)
             llm_answer = self._query_llm(query, top_k_results)
             return self._strip_llm_answer(llm_answer, amount)
         else:
             top_k_results = [self._query_vector(symptom, 1) for symptom in symptoms]
             return [df['name'].iloc[0] for df in top_k_results]
 
-    @staticmethod
-    def _query_llm(query: str, top_docs: pd.DataFrame):
+    def _query_llm(self, query: str, top_docs: pd.DataFrame) -> str:
         context = ""
 
         names = top_docs["name"].tolist()
@@ -72,19 +80,31 @@ class RAG:
         for i in range(len(names)):
             context += f"Name:{names[i]},  Id: {ids[i]}, Description: {descriptions[i]}\n"
 
-        client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+        query = (
+            f"Given this context:{context}. Return only the names of the medications that could best cure each of the following comma separated symptoms from"
+            f" each patient. Return only comma separated names in the same order in which they appear in the input. These are the input symptoms: {query}")
 
-        completion = client.chat.completions.create(
-            model="local-model",
-            messages=[
-                {"role": "system",
-                 "content": f"{context}. Model should recommend a medication for each of the symptoms: {query}"},
-                {"role": "user", "content": query}
-            ],
-            temperature=0.7,
-        )
+        print("Query: ", query)
 
-        return completion
+        response = self.model.generate_content(query)
+
+        print("Response: ", response)
+
+        return response.text
+
+        # client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+        #
+        # completion = client.chat.completions.create(
+        #     model="local-model",
+        #     messages=[
+        #         {"role": "system",
+        #          "content": f"{context}. Model should recommend a medication for each of the symptoms: {query}"},
+        #         {"role": "user", "content": query}
+        #     ],
+        #     temperature=0.7,
+        # )
+        #
+        # return completion
 
     def _query_vector(self, query: str, top_k: int = 5) -> pd.DataFrame:
         query_embedding = self._get_embedding(query)
@@ -116,12 +136,11 @@ class RAG:
 
         return embedding.tolist()
 
-    def _strip_llm_answer(self, completion: ChatCompletion, amount: int):
-        message_content = completion.choices[0].message.content
+    def _strip_llm_answer(self, completion: str, amount: int):
 
         output = []
 
-        for word in message_content.split():
+        for word in completion.split():
             word = word.translate(str.maketrans('', '', string.punctuation)).strip("*")
 
             if word in self.data['name'].tolist():
@@ -137,10 +156,12 @@ class RAG:
 
 
 if __name__ == '__main__':
+    load_dotenv()
     os.environ["TOKENIZERS_PARALLELISM"] = "true"
+    api_key = os.getenv('GOOGLE_API_KEY')
 
     # data = pd.read_csv('medications.csv')
-    rag_config = RagConfig(use_persistence=True, use_llm=False)
+    rag_config = RagConfig(use_persistence=True, use_llm=True, gemini_api_key=api_key)
     rag = RAG(config=rag_config)
-    result = rag.query_medications_for_patients(['flu', 'fever'])
-    print(result)
+    result = rag.query_medications_for_patients(['osteoporosis', 'diabetes', 'fever', 'diabetes and fever'])
+    print("Result: ", result)
