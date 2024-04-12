@@ -73,24 +73,26 @@ class Patient(ABC):
         # todo add worsen and twice_worsen
         if self.is_dead or self.is_cured:
             return
-        if self.bed_assigned is None:
-            if self.status == 'critical':
-                action = np.random.choice(["cure", "die", "better"], p=[0.05, 0.8, 0.15])
-            elif self.status == 'grave':
-                action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.1, 0.6, 0.1, 0.2])
-            else:
-                action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.3, 0.2, 0.3, 0.2])
+
+        if self.bed_assigned is None and self.status == 'critical':
+            action = np.random.choice(["cure", "die", "better"], p=[0.05, 0.8, 0.15])
+        elif self.bed_assigned is None and self.status == 'grave':
+            action = np.random.choice(["cure", "die", "better", "twice_better", "worsen"], p=[0.1, 0.4, 0.1, 0.05, 0.35])
+        elif self.bed_assigned is None and self.status == 'regular':
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.4, 0.1, 0.3, 0.2])
 
         elif self.status == 'critical' and self.bed_assigned.typee == 'ICU':
             action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.3, 0.2, 0.3, 0.2])
         elif self.status == 'critical' and self.bed_assigned.typee == 'common':
             action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.1, 0.5, 0.3, 0.1])
+
         elif self.status == 'grave' and self.bed_assigned.typee == 'common':
-            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.2, 0.4, 0.3, 0.1])
+            action = np.random.choice(["cure", "die", "better", "worsen"], p=[0.1, 0.2, 0.3, 0.4])
         elif self.status == 'grave' and self.bed_assigned.typee == 'ICU':
-            action = np.random.choice(["cure", "die", "better"], p=[0.2, 0.2, 0.6])
+            action = np.random.choice(["cure", "die", "better", "worsen"], p=[0.2, 0.1, 0.35, 0.35])
+
         elif self.status == 'regular' and self.bed_assigned.typee == 'ICU':
-            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.7, 0.1, 0.1,0.1])
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.7, 0.05, 0.15, 0.1])
         elif self.status == 'regular' and self.bed_assigned.typee == 'common':
             action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.4, 0.1, 0.3, 0.2])
 

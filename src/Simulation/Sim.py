@@ -226,3 +226,4 @@ def get_patients_worse():
 
 
 start_simulation(1, 25, 93, 50)
+
