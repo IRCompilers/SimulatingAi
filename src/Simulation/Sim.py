@@ -3,8 +3,14 @@ from src.Simulation.DailyStats import Day_Statistics
 import numpy as np
 import numpy
 from scipy.optimize import linear_sum_assignment
-from src.Rag.rag import RAG
+# from src.Rag.rag import RAG
+import json
+import os, pathlib
+
 simulat = []
+AllSymptoms = []
+
+
 class Simulation:
     def __init__(self, n_icu_beds, n_common_beds, n_patients=40, lambda_=20):
         self.n_icu_beds = n_icu_beds
@@ -15,14 +21,14 @@ class Simulation:
         self.beds = []
         self.daily_stats = []
         self.costs = np.zeros((n_patients, n_icu_beds + n_common_beds))
-        #initialization of the RAG
-        self.rag = RAG()
+        # initialization of the RAG
+        # self.rag = RAG()
         self.simulate()
 
     def generate_patient(self, index):
         age = np.random.choice(["young_adult", "adult", "senior"], p=[0.3, 0.4, 0.3])
         status = np.random.choice(["grave", "critical", "regular"], p=[0.3, 0.2, 0.5])
-        return Patient(index, status, age)
+        return Patient(index, status, age, allsymptoms= AllSymptoms)
 
     def initialize(self):
         pat = [self.generate_patient(i) for i in range(self.n_patients)]
@@ -138,15 +144,13 @@ class Simulation:
             for p in self.patients:
                 symptoms.append(p.get_symptoms())
 
-            medications = self.rag.query_medications_for_patients(symptoms)
+            # medications = self.rag.query_medications_for_patients(symptoms)
 
             for ind, i in enumerate(self.patients):
                 old_status = i.status
 
-                if i.bed_assigned is not None:
-                    i.doctor_interaction(medications[ind])
-
-
+                # if i.bed_assigned is not None:
+                #     i.doctor_interaction(medications[ind])
 
                 i.interact()
                 if i.is_cured:
@@ -178,7 +182,20 @@ class Simulation:
 
 
 def start_simulation(icu_beds, common_beds, initial_p, lambda_):
-    global simulat
+    global simulat, AllSymptoms
+
+    poss = []
+    # load all possible symptoms
+    with open('..\..\data\Drugs.json') as f:
+        doc = json.load(f)
+
+    for i in doc:
+        for j in i['side_effects']:
+            poss.append(j)
+
+    AllSymptoms = list(set(poss))
+
+
     try:
         sim = Simulation(icu_beds, common_beds, initial_p, lambda_)
         simulat = sim.daily_stats
@@ -187,20 +204,25 @@ def start_simulation(icu_beds, common_beds, initial_p, lambda_):
         print(e)
         return False
 
+
 def get_day_statistics(day):
     return [i.__dict__ for i in simulat if i.day == day][0]
+
 
 def get_deaths():
     return [x.grave_patients_died + x.critical_patients_died + x.regular_patients_died for x in simulat]
 
+
 def get_cured():
     return [x.grave_patients_cured + x.critical_patients_cured + x.regular_patients_cured for x in simulat]
 
+
 def get_patients_better():
     return [x.critical_to_grave + x.critical_to_regular + x.grave_to_regular for x in simulat]
+
 
 def get_patients_worse():
     return [x.grave_to_critical + x.regular_to_critical + x.regular_to_grave for x in simulat]
 
 
-start_simulation(1,25,93,50)
+start_simulation(1, 25, 93, 50)

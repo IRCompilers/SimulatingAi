@@ -1,20 +1,26 @@
+import random
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-import random
 from abc import ABC, abstractmethod
 
 class Patient(ABC):
-    def __init__(self, index, status, age_group, bed_assigned=None, sickness = None, symptoms = []):
+    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = None):
         self.index = index
         self.status = status
         self.bed_assigned = bed_assigned
         self.is_cured = False
         self.is_dead = False
         self.age_group = age_group
-        self.symptoms = symptoms
+        self.symptoms = self.set_symptoms(allsymptoms)
 
     def get_symptoms(self):
         return ' and '.join(self.symptoms)
+
+    def set_symptoms(self, AllSymptoms):
+        amount = np.random.poisson(2) + 1
+        return random.choices(population=AllSymptoms, k = amount)
+
 
     def doctor_interaction(self, medicine: list[str] = []):
         #todo implement this
