@@ -1,55 +1,116 @@
-from abc import ABC
+import numpy as np
+from scipy.optimize import linear_sum_assignment
 import random
+from abc import ABC, abstractmethod
 
 class Patient(ABC):
-    def __init__(self, symptoms, actual_diagnosis):
-        self.symptoms = symptoms
-        self.actual_diagnosis = actual_diagnosis
-        self.doctor_diagnosis = None
-        self.doctor_treatment = []
-        self.doctor_assigned = None
+    def __init__(self, index, status, age_group, bed_assigned=None, sickness = None, symptoms = []):
+        self.index = index
+        self.status = status
+        self.bed_assigned = bed_assigned
         self.is_cured = False
-
-    def __repr__(self):
-        return f"Patient with {self.actual_diagnosis}"
-
-    def assign_doctor(self, doctor):
-        self.doctor_assigned = doctor
-
-    def get_diagnosis(self):
-        return self.doctor_diagnosis
-
-    def correctly_diagnosed(self):
-        return self.actual_diagnosis == self.doctor_diagnosis
-
-    def __treat(self, medicine):
-        x = f'{self.actual_diagnosis} treated with {medicine}'
-        x += f' thought to be {self.doctor_diagnosis}' if not self.correctly_diagnosed() else ''
-        self.doctor_treatment.append(x)
-
-    def __evolve(self, medicine):
-        if medicine in self.actual_diagnosis.treatments:
-            self.is_cured = True if random.random() < 0.5 else False
-        else:
-            #get a random symptom from the actual diagnosis that i dont already have and add it to my symptoms
-            new_symptoms = [symptom for symptom in self.actual_diagnosis.symptoms if symptom not in self.symptoms]
-            (self.symptoms.append(random.choice(new_symptoms)) if new_symptoms else None) if random.random() < 0.5 else None
-
-    def take_medicine(self, medicine):
-        self.__treat(medicine)
-        self.__evolve(medicine)
-
-    def get_treatment(self):
-        return self.doctor_treatment
-
-    def is_cured(self):
-        return self.is_cured
-
-    def get_doctor(self):
-        return self.doctor_assigned
+        self.is_dead = False
+        self.age_group = age_group
+        self.symptoms = symptoms
 
     def get_symptoms(self):
-        return self.symptoms
+        return ' and '.join(self.symptoms)
+
+    def doctor_interaction(self, medicine: list[str] = []):
+        #todo implement this
+
+        # get medicines that work for my symptoms
+        # check that the medicines given correspond
+        # better or worse
+        pass
+
+    def cure(self):
+        self.is_cured = True
+
+    def die(self):
+        self.is_dead = True
+
+    def better(self):
+        if self.status == 'critical':
+            self.status = 'grave'
+            return
+        elif self.status == 'grave':
+            self.status = 'regular'
+            return
+        else:
+            self.is_cured = True
+
+    def twice_better(self):
+        if self.status == 'critical':
+            self.status = 'regular'
+            return
+        else:
+            self.is_cured = True
+
+    def worsen(self):
+        if self.status == 'grave':
+            self.status = 'critical'
+            return
+        elif self.status == 'regular':
+            self.status = 'grave'
+            return
+        else:
+            self.is_dead = True
+
+    def twice_worsen(self):
+        if self.status == 'regular':
+            self.status = 'critical'
+        else:
+            self.is_dead = True
+
+    def interact(self):
+        # todo add worsen and twice_worsen
+        if self.is_dead or self.is_cured:
+            return
+        if self.bed_assigned is None:
+            if self.status == 'critical':
+                action = np.random.choice(["cure", "die", "better"], p=[0.05, 0.8, 0.15])
+            elif self.status == 'grave':
+                action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.1, 0.6, 0.1, 0.2])
+            else:
+                action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.3, 0.2, 0.3, 0.2])
+
+        elif self.status == 'critical' and self.bed_assigned.typee == 'ICU':
+            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.3, 0.2, 0.3, 0.2])
+        elif self.status == 'critical' and self.bed_assigned.typee == 'common':
+            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.1, 0.5, 0.3, 0.1])
+        elif self.status == 'grave' and self.bed_assigned.typee == 'common':
+            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.2, 0.4, 0.3, 0.1])
+        elif self.status == 'grave' and self.bed_assigned.typee == 'ICU':
+            action = np.random.choice(["cure", "die", "better"], p=[0.2, 0.2, 0.6])
+        elif self.status == 'regular' and self.bed_assigned.typee == 'ICU':
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.7, 0.1, 0.1,0.1])
+        elif self.status == 'regular' and self.bed_assigned.typee == 'common':
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.4, 0.1, 0.3, 0.2])
+
+        getattr(self, action)()
+
+    def __str__(self):
+        return f'{self.status} {self.age_group}'
+
+    def __repr__(self):
+        return self.__str__()
+
+class Beds:
+    def __init__(self, index, typee):
+        self.index = index
+        self.typee = typee
+
+    def __str__(self):
+        return f"Bed type {self.typee}"
+
+class ICU_Bed(Beds):
+    def __init__(self, index):
+        super().__init__(index, "ICU")
+
+class Common_Bed(Beds):
+    def __init__(self, index):
+        super().__init__(index, "common")
 
 
 
