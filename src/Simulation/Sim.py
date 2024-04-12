@@ -1,4 +1,5 @@
 from src.Entities.Patient import Patient, ICU_Bed, Common_Bed
+from src.Entities.Medicine import Medicine
 from src.Simulation.DailyStats import Day_Statistics
 import numpy as np
 import numpy
@@ -9,6 +10,7 @@ import os, pathlib
 
 simulat = []
 AllSymptoms = []
+AllMedicines = []
 
 
 class Simulation:
@@ -192,6 +194,8 @@ def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     for i in doc:
         for j in i['side_effects']:
             poss.append(j)
+        med = Medicine(i['name'], i['prescribed_for'])
+        AllMedicines.append(med)
 
     AllSymptoms = list(set(poss))
 

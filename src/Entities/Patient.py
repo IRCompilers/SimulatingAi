@@ -70,7 +70,9 @@ class Patient(ABC):
             self.is_dead = True
 
     def interact(self):
-        # todo add worsen and twice_worsen
+        if len(self.symptoms) == 0:
+            self.cure()
+
         if self.is_dead or self.is_cured:
             return
 
