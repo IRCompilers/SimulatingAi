@@ -174,14 +174,8 @@ class Simulation:
                 else:
                     j = i+19
 
-                #todo delete this
-                # for i in range(20):
-                #     med = random.choices(population=[x.name for x in AllMedicines], k = 2)
-                #     medications.append(med)
-
                 med = self.rag.query_medications_for_patients(symptoms[i:j+1])
                 medications.extend(med)
-
 
             for ind, i in enumerate(self.patients):
                 old_status = i.status
@@ -221,18 +215,7 @@ class Simulation:
 def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     global simulat, AllSymptoms
 
-    poss = []
-    # load all possible symptoms
-    with open('..\..\data\Drugs.json') as f:
-        doc = json.load(f)
 
-    for i in doc:
-        for j in i['side_effects']:
-            poss.append(j)
-        med = Medicine(i['name'], i['prescribed_for'], i['side_effects'])
-        AllMedicines.append(med)
-
-    AllSymptoms = list(set(poss))
 
 
     try:
@@ -261,12 +244,27 @@ def get_patients_worse():
     return [x.grave_to_critical + x.regular_to_critical + x.regular_to_grave for x in simulat]
 
 
+
+#__________INITIALIZATION___________
+poss = []
+# load all possible symptoms
+with open('..\..\data\Drugs.json') as f:
+    doc = json.load(f)
+
+for i in doc:
+    for j in i['side_effects']:
+        poss.append(j)
+    med = Medicine(i['name'], i['prescribed_for'], i['side_effects'])
+    AllMedicines.append(med)
+
+AllSymptoms = list(set(poss))
+
 deaths = []
 cured = []
 better = []
 worse = []
 
-for i in range(1):
+for i in range(10):
     start_simulation(1, 25, 93, 50)
     deaths.append(get_deaths())
     cured.append(get_cured())
