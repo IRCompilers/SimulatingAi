@@ -53,7 +53,7 @@ class RAG:
             with open('embedding_model.pkl', 'rb') as f:
                 self.embedding_model = dill.load(f)
         else:
-            self.embedding_model = SentenceTransformer("thenlper/gte-large")
+            self.embedding_model = SentenceTransformer("thenlper/gte-small")
             with open('embedding_model.pkl', 'wb') as f:
                 dill.dump(self.embedding_model, f)
 
@@ -83,17 +83,17 @@ class RAG:
             return self._strip_llm_answer(llm_answer, amount)
         else:
             top_k_results = [self._query_vector(symptom, 1) for symptom in symptoms]
-            return [df['name'].iloc[0] for df in top_k_results]
+            return [df['Name'].iloc[0] for df in top_k_results]
 
     def _query_llm(self, query: str, top_docs: pd.DataFrame) -> str:
         context = ""
 
-        names = top_docs["name"].tolist()
-        ids = top_docs["id"].tolist()
-        descriptions = top_docs["description"].tolist()
+        names = top_docs["Name"].tolist()
+        # ids = top_docs["id"].tolist()
+        descriptions = top_docs["Prescribed_For"].tolist()
 
         for i in range(len(names)):
-            context += f"Name:{names[i]},  Id: {ids[i]}, Description: {descriptions[i]}\n"
+            context += f"Name:{names[i]}, Description: {descriptions[i]}\n"
 
         query = (
             f"Given this example {example}. Given this context:{context} Return only the names of the medications that could best cure each of the following comma separated symptoms from"
@@ -120,7 +120,7 @@ class RAG:
         return df.sort_values(by='similarity', ascending=False).head(top_k)
 
     def _attach_embedding(self, data: pd.DataFrame):
-        data["embedding"] = data["description"].apply(lambda x: self._get_embedding(x))
+        data["embedding"] = data["Prescribed_For"].apply(lambda x: self._get_embedding(x))
         return data
 
     def _reset_domain(self, data: pd.DataFrame):
@@ -146,7 +146,7 @@ class RAG:
             patient_output = []
 
             for word in words:
-                if word.strip() in self.data['name'].tolist():
+                if word.strip() in self.data['Name'].tolist():
                     patient_output.append(word.strip())
 
             output.append(patient_output)
@@ -161,13 +161,16 @@ class RAG:
 
 
 if __name__ == '__main__':
-    load_dotenv()
-    os.environ["TOKENIZERS_PARALLELISM"] = "true"
-    api_key = os.getenv('GOOGLE_API_KEY')
 
-    # data = pd.read_csv('medications.csv')
-    rag_config = RagConfig(use_persistence=True, use_llm=True, gemini_api_key=api_key)
-    rag = RAG(config=rag_config)
+    # load_dotenv()
+    # os.environ["TOKENIZERS_PARALLELISM"] = "true"
+    # api_key = os.getenv('GOOGLE_API_KEY')
+
+    api_key = 'AIzaSyATid8iaWN-KS3xZdFA705HVgznzAhlCqs'
+
+    data = pd.read_csv('..\..\data\Drugs.csv')
+    rag_config = RagConfig(use_persistence=True, use_llm=False, gemini_api_key=api_key)
+    rag = RAG(data = data, config=rag_config)
     result = rag.query_medications_for_patients(
         ['osteoporosis and cough', 'diabetes and osteoporosis', 'fever and cough and diabetes', 'diabetes and fever', 'arthritis'])
     print("Result: ", result)

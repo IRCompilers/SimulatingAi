@@ -1,12 +1,17 @@
+import random
+
 from src.Entities.Patient import Patient, ICU_Bed, Common_Bed
 from src.Entities.Medicine import Medicine
 from src.Simulation.DailyStats import Day_Statistics
 import numpy as np
 import numpy
 from scipy.optimize import linear_sum_assignment
-# from src.Rag.rag import RAG
+from src.Rag.rag import RAG
+from src.Rag.rag_config import RagConfig
 import json
 import os, pathlib
+import pandas as pd
+import matplotlib.pyplot as plt
 
 simulat = []
 AllSymptoms = []
@@ -23,9 +28,22 @@ class Simulation:
         self.beds = []
         self.daily_stats = []
         self.costs = np.zeros((n_patients, n_icu_beds + n_common_beds))
-        # initialization of the RAG
-        # self.rag = RAG()
+
+        self.rag = self.create_rag()
+
         self.simulate()
+
+
+    def create_rag(self):
+        # load_dotenv()
+        # os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        # api_key = os.getenv('GOOGLE_API_KEY')
+
+        api_key = 'AIzaSyATid8iaWN-KS3xZdFA705HVgznzAhlCqs'
+
+        data = pd.read_csv('..\..\data\Drugs.csv')
+        rag_config = RagConfig(use_persistence=False, use_llm=False, gemini_api_key=api_key)
+        return RAG(data=data, config=rag_config)
 
     def generate_patient(self, index):
         age = np.random.choice(["young_adult", "adult", "senior"], p=[0.3, 0.4, 0.3])
@@ -126,6 +144,7 @@ class Simulation:
     def simulate(self):
         self.initialize()
         for k in range(30):
+            print(f'Day {k}')
             stats = Day_Statistics(k)
             stats.initial_critical_patients = sum([1 for i in self.patients if i.status == "critical"])
             stats.initial_grave_patients = sum([1 for i in self.patients if i.status == "grave"])
@@ -147,12 +166,28 @@ class Simulation:
                 symptoms.append(p.get_symptoms())
 
             # medications = self.rag.query_medications_for_patients(symptoms)
+            medications = []
+
+            for i in range(0,len(symptoms),20):
+                if i + 19 > len(symptoms)-1:
+                    j = len(symptoms) - 1
+                else:
+                    j = i+19
+
+                #todo delete this
+                # for i in range(20):
+                #     med = random.choices(population=[x.name for x in AllMedicines], k = 2)
+                #     medications.append(med)
+
+                med = self.rag.query_medications_for_patients(symptoms[i:j+1])
+                medications.extend(med)
+
 
             for ind, i in enumerate(self.patients):
                 old_status = i.status
 
-                # if i.bed_assigned is not None:
-                #     i.doctor_interaction(medications[ind])
+                if i.bed_assigned is not None:
+                    i.doctor_interaction(medications[ind], AllMedicines)
 
                 i.interact()
                 if i.is_cured:
@@ -194,7 +229,7 @@ def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     for i in doc:
         for j in i['side_effects']:
             poss.append(j)
-        med = Medicine(i['name'], i['prescribed_for'])
+        med = Medicine(i['name'], i['prescribed_for'], i['side_effects'])
         AllMedicines.append(med)
 
     AllSymptoms = list(set(poss))
@@ -212,14 +247,11 @@ def start_simulation(icu_beds, common_beds, initial_p, lambda_):
 def get_day_statistics(day):
     return [i.__dict__ for i in simulat if i.day == day][0]
 
-
 def get_deaths():
     return [x.grave_patients_died + x.critical_patients_died + x.regular_patients_died for x in simulat]
 
-
 def get_cured():
     return [x.grave_patients_cured + x.critical_patients_cured + x.regular_patients_cured for x in simulat]
-
 
 def get_patients_better():
     return [x.critical_to_grave + x.critical_to_regular + x.grave_to_regular for x in simulat]
@@ -229,5 +261,63 @@ def get_patients_worse():
     return [x.grave_to_critical + x.regular_to_critical + x.regular_to_grave for x in simulat]
 
 
-start_simulation(1, 25, 93, 50)
+deaths = []
+cured = []
+better = []
+worse = []
 
+for i in range(1):
+    start_simulation(1, 25, 93, 50)
+    deaths.append(get_deaths())
+    cured.append(get_cured())
+    better.append(get_patients_better())
+    worse.append(get_patients_worse())
+
+#get mean, std, min, max
+print('_________________Deaths_______________')
+#plot all 30 days
+
+for_plot = []
+headings = [i for i in range(30)]
+for day in range(30):
+    values = [x[day] for x in deaths]
+    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
+    for_plot.append(np.mean(values))
+
+plt.plot(headings, for_plot)
+#make "Daily deaths" the heading of the plot
+plt.title('Daily deaths')
+plt.show()
+
+for_plot = []
+print('_________________Cured_______________')
+for day in range(30):
+    values = [x[day] for x in cured]
+    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
+    for_plot.append(np.mean(values))
+
+plt.plot(headings, for_plot)
+plt.title('Daily cured')
+plt.show()
+
+for_plot = []
+print('_________________Better_______________')
+for day in range(30):
+    values = [x[day] for x in better]
+    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
+    for_plot.append(np.mean(values))
+
+plt.plot(headings, for_plot)
+plt.title('Daily better')
+plt.show()
+
+for_plot = []
+print('_________________Worse_______________')
+for day in range(30):
+    values = [x[day] for x in worse]
+    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
+    for_plot.append(np.mean(values))
+
+plt.plot(headings, for_plot)
+plt.title('Daily worse')
+plt.show()

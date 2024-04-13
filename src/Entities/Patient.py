@@ -3,6 +3,7 @@ import random
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from abc import ABC, abstractmethod
+from src.Entities.Medicine import Medicine
 
 class Patient(ABC):
     def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = None):
@@ -12,7 +13,7 @@ class Patient(ABC):
         self.is_cured = False
         self.is_dead = False
         self.age_group = age_group
-        self.symptoms = self.set_symptoms(allsymptoms)
+        self.symptoms: list = self.set_symptoms(allsymptoms)
 
     def get_symptoms(self):
         return ' and '.join(self.symptoms)
@@ -21,14 +22,31 @@ class Patient(ABC):
         amount = np.random.poisson(2) + 1
         return random.choices(population=AllSymptoms, k = amount)
 
+    def doctor_interaction(self, treatment: list[str] = [], allmedicines : list[Medicine] = []):
+        treatment = treatment if isinstance(treatment, list) else [treatment]
 
-    def doctor_interaction(self, medicine: list[str] = []):
-        #todo implement this
+        for med in treatment:
+            curr = [x for x in allmedicines if x.name == med]
+            if len(curr) == 0:
+                continue
+            current = curr[0]
 
-        # get medicines that work for my symptoms
-        # check that the medicines given correspond
-        # better or worse
-        pass
+            if len(self.symptoms) == 0:
+                break
+
+            #cures the symptom with a 75% prob
+            #gets a side_effect with a 10%
+
+            for sym in self.symptoms:
+                if current.treats(sym):
+                    x = random.random()
+                    if x > 0.25:
+                        self.symptoms.remove(sym)
+                    y = random.random()
+                    if y < 0.1:
+                        self.symptoms.append(random.choice(current.side_effects))
+
+
 
     def cure(self):
         self.is_cured = True
