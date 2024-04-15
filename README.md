@@ -20,9 +20,16 @@ In this simulation, we have used the Hungarian method for a linear assignment pr
 The algorithm is based on the cost matrix, which is a matrix that contains the cost of assigning a patient to a specific type of bed. We view it as: the lower the cost, the more beneficial it is to assign the patient to that bed.
 The Hungarian method finds the optimal assignment by minimizing the total cost of the assignment. It has the restrictions that each patient can only be assigned to one bed and each bed can only be assigned to one patient.
 
-## RAG & DataBase
-> insert 
+## RAG
 
+RAG, or Retrieval-Augmented Generation, is a type of model that combines the benefits of both retrieval-based and generative models for natural language processing tasks. The main idea behind RAG is to leverage the vast amount of information available in large text corpora by retrieving relevant documents and conditioning the generation on the retrieved documents. This allows the model to generate more informed and contextually relevant responses.  
+
+In this particular implementation, the RAG model is used to recommend medications based on a list of symptoms. The model is initialized with a dataset of medications, each with a description and potential side effects. If the use_persistence configuration is set to True, the model will use a MongoDB database to persist the medication data. The model also uses a SentenceTransformer to create embeddings for each medication description, which are used to compute cosine similarity with the input symptoms. We use MongoDB because of its easiness to use and setup, and because of the fact that it allows JSON object upserting, ideal for the embedded vector
+
+The query_medications_for_patients method is the main entry point for querying the model. It takes a list of symptoms and returns a list of recommended medications. If the use_llm configuration is set to True, the model will use a Language Model (LLM) to generate a response based on the top documents retrieved from the vector query. The LLM is queried with a context that includes the top documents and the input symptoms, and the response is parsed to extract the medication names. The LLM we use in this latest iteration of the RAG is the Gemini model by Google, via their genai API.
+
+## Database
+> insert
 
 ## Simulation
 The simulation is run for a set number of days (30).
