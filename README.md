@@ -52,7 +52,24 @@ This process is then repeated for the set number of days.
 We ran the simulation 10 times (because of time constraints and computational power) for each set of parameters, and we have gotten the following mean values:
 > Note: The standard deviation, min and max values are the mean values of its respective metric per simulation
 
+
 ___
+#### Simulation 1 (Baseline)
+#### ICU Beds: 5, Common Beds: 10, Initial Patients: 50, Lambda For Poisson: 50
+
+| Metric                                  |  Mean   |  Std Deviation  |   Min   |   Max   |
+|:----------------------------------------|:-------:|:---------------:|:-------:|:-------:|
+| Patients Discharged                     |  15.56  |      3.26       |  11.36  |  20.26  |
+| Patients Dead                           |  31.75  |      5.09       |  24.8   |  38.83  |
+| Patients Cured                          |  0.85   |      0.78       |   0.1   |  2.06   |
+| Patients that got better                |  9.90   |      2.31       |   7.0   |  13.46  |
+| Patients that got worse                 |  20.63  |      3.83       |  15.53  |  25.9   |
+| Regular patients that stayed the same   |  6.94   |      2.09       |  3.93   |  9.73   |
+| Grave patients that stayed the same     |  12.33  |      3.01       |  8.36   |  16.56  |
+| Critical patients that stayed the same  |  2.93   |      1.61       |  1.03   |  5.36   |
+
+___
+#### Simulation 2 (Upping the number of beds)
 #### ICU Beds: 20, Common Beds: 20, Initial Patients: 50, Lambda For Poisson: 50
 
 | Metric                                  |  Mean   |  Std Deviation  |   Min   |   Max   |
@@ -67,21 +84,25 @@ ___
 | Critical patients that stayed the same  |  3.34   |      1.61       |  1.23   |  5.66   |
 
 ___
-#### ICU Beds: 5, Common Beds: 10, Initial Patients: 50, Lambda For Poisson: 50
+#### Simulation 3 (Upping the number of initial patients and the number of new patients per day)
+#### ICU Beds: 5, Common Beds: 10, Initial Patients: 100, Lambda For Poisson: 100
 
-| Metric                                  |  Mean   |  Std Deviation  |   Min   |   Max   |
-|:----------------------------------------|:-------:|:---------------:|:-------:|:-------:|
-| Patients Discharged                     |  15.56  |      3.26       |  11.36  |  20.26  |
-| Patients Dead                           |  31.75  |      5.09       |  24.8   |  38.83  |
-| Patients Cured                          |  0.85   |      0.78       |   0.1   |  2.06   |
-| Patients that got better                |  9.90   |      2.31       |   7.0   |  13.46  |
-| Patients that got worse                 |  20.63  |      3.83       |  15.53  |  25.9   |
-| Regular patients that stayed the same   |  6.94   |      2.09       |  3.93   |  9.73   |
-| Grave patients that stayed the same     |  12.33  |      3.01       |  8.36   |  16.56  |
-| Critical patients that stayed the same  |  2.93   |      1.61       |  1.03   |  5.36   |
+| Metric                                  | Mean  | Std Deviation |  Min  |  Max  |
+|:----------------------------------------|:-----:|:-------------:|:-----:|:-----:|
+| Patients Discharged                     | 29.51 |     4.60      | 23.76 | 36.4  |
+| Patients Dead                           | 67.34 |     7.03      | 57.8  | 77.0  |
+| Patients Cured                          | 0.79  |     0.69      | 0.06  | 1.83  |
+| Patients that got better                | 15.10 |     3.33      | 10.96 | 20.03 |
+| Patients that got worse                 | 40.89 |     5.38      | 33.86 | 48.7  |
+| Regular patients that stayed the same   | 14.83 |     3.02      | 10.93 | 19.2  |
+| Grave patients that stayed the same     | 23.05 |     3.66      | 18.13 | 28.06 |
+| Critical patients that stayed the same  | 5.00  |     1.78      |  2.7  | 7.73  |
 
 
-## Conclusion
+### Interpretation of the results
+
+
+
 
 
 
