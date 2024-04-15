@@ -10,23 +10,40 @@
 ```bash
 pip install -r requirements.txt
 ```
-2. Execute the `sim.py` file. This file is found in the `Simulation` folder. The project must be run as a project with its root folder as the main folder.
+2. Execute the `sim.py` file. This file is found in the `Simulation` folder. The project must be run as a project with its
+3. root folder as the main folder.
 
 ## Summary of the project
-This project is a simulation of a hospital that has an initial number of patients and a set amount of ICU (Intensive Care Unit) beds and regular beds. The patients can be in a critical, grave or regular condition. They have a set of symptoms. Using an optimization algorithm, the patients are assigned to the beds in a way that prioritizes the most critical patients. The patients' symptoms are treated with a treatment recommended by a RAG. The treatment is a set of medications. The patients can be discharged from the hospital when they are fully recovered. Once a patient is discharged, that bed is then made available for another patient. The patients can also die if they are not treated in time.
+This project is a simulation of a hospital that has an initial number of patients and a set amount of ICU (Intensive Care Unit) 
+beds and regular beds. The patients can be in a critical, grave or regular condition. They have a set of symptoms. Using an optimization algorithm, the patients are assigned to the beds in a way that prioritizes the most critical patients. The patients' symptoms are treated with a treatment recommended by a RAG. The treatment is a set of medications. The patients can be discharged from the hospital when they are fully recovered. Once a patient is discharged, that bed is then made available for another patient. The patients can also die if they are not treated in time.
 
 ## Optimization Method Used
-In this simulation, we have used the Hungarian method for a linear assignment problem. The Hungarian method is an optimization algorithm that finds the optimal assignment of patients to beds. 
-The algorithm is based on the cost matrix, which is a matrix that contains the cost of assigning a patient to a specific type of bed. We view it as: the lower the cost, the more beneficial it is to assign the patient to that bed.
-The Hungarian method finds the optimal assignment by minimizing the total cost of the assignment. It has the restrictions that each patient can only be assigned to one bed and each bed can only be assigned to one patient.
+In this simulation, we have used the Hungarian method for a linear assignment problem. The Hungarian method is an optimization 
+algorithm that finds the optimal assignment of patients to beds. 
+The algorithm is based on the cost matrix, which is a matrix that contains the cost of assigning a patient to a specific 
+type of bed. We view it as: the lower the cost, the more beneficial it is to assign the patient to that bed.
+The Hungarian method finds the optimal assignment by minimizing the total cost of the assignment. It has the restrictions 
+that each patient can only be assigned to one bed and each bed can only be assigned to one patient.
 
 ## RAG
 
-RAG, or Retrieval-Augmented Generation, is a type of model that combines the benefits of both retrieval-based and generative models for natural language processing tasks. The main idea behind RAG is to leverage the vast amount of information available in large text corpora by retrieving relevant documents and conditioning the generation on the retrieved documents. This allows the model to generate more informed and contextually relevant responses.  
+RAG, or Retrieval-Augmented Generation, is a type of model that combines the benefits of both retrieval-based and generative 
+models for natural language processing tasks. The main idea behind RAG is to leverage the vast amount of information available 
+in large text corpora by retrieving relevant documents and conditioning the generation on the retrieved documents. This allows
+the model to generate more informed and contextually relevant responses.  
 
-In this particular implementation, the RAG model is used to recommend medications based on a list of symptoms. The model is initialized with a dataset of medications, each with a description and potential side effects. If the use_persistence configuration is set to True, the model will use a MongoDB database to persist the medication data. The model also uses a SentenceTransformer to create embeddings for each medication description, which are used to compute cosine similarity with the input symptoms. We use MongoDB because of its easiness to use and setup, and because of the fact that it allows JSON object upserting, ideal for the embedded vector
+In this particular implementation, the RAG model is used to recommend medications based on a list of symptoms. The model
+is initialized with a dataset of medications, each with a description and potential side effects. If the use_persistence 
+configuration is set to True, the model will use a MongoDB database to persist the medication data. The model also uses a
+SentenceTransformer to create embeddings for each medication description, which are used to compute cosine similarity with 
+the input symptoms. We use MongoDB because of its easiness to use and setup, and because it allows JSON 
+object upserting, which is ideal for the embedded vector.
 
-The query_medications_for_patients method is the main entry point for querying the model. It takes a list of symptoms and returns a list of recommended medications. If the use_llm configuration is set to True, the model will use a Language Model (LLM) to generate a response based on the top documents retrieved from the vector query. The LLM is queried with a context that includes the top documents and the input symptoms, and the response is parsed to extract the medication names. The LLM we use in this latest iteration of the RAG is the Gemini model by Google, via their genai API.
+The query_medications_for_patients method is the main entry point for querying the model. It takes a list of symptoms
+and returns a list of recommended medications. If the use_llm configuration is set to True, the model will use a Language
+Model (LLM) to generate a response based on the top documents retrieved from the vector query. The LLM is queried with
+a context that includes the top documents and the input symptoms, and the response is parsed to extract the medication
+names. The LLM we use in this latest iteration of the RAG is the Gemini model by Google, via their genai API.
 
 ## Database
 > insert
@@ -43,13 +60,15 @@ or more of that drug's side effects.
 Then there's the 'evolution' phase. In this phase the patients are cured, die, get better or get worse; all depending on the
 amount of symptoms the patient still has, it's status (critical, grave, regular) and the bed assigned. 
 
-The last step is to generate new patients which will be added to the patients that survived the day. The amount of new patients is decided by a Poisson distribution.
+The last step is to generate new patients which will be added to the patients that survived the day. The amount of new patients 
+is decided by a Poisson distribution.
 The symptoms are decided randomly from all possible symptoms.
 
 This process is then repeated for the set number of days.
 
 ## Results
-We ran the simulation 10 times (because of time constraints and computational power) for each set of parameters, and we have gotten the following mean values:
+We ran the simulation 10 times (because of time constraints and computational power) for each set of parameters, and we have
+gotten the following mean values:
 > Note: The standard deviation, min and max values are the mean values of its respective metric per simulation
 
 
@@ -100,10 +119,42 @@ ___
 
 
 ### Interpretation of the results
+#### Upping the number of beds
+In the second simulation, we increased the number of ICU beds and common beds to 20 each. This resulted in a 
+higher number of patients discharged and a lower number of patients dead compared to the baseline simulation. 
+This suggests that increasing the number of beds can help improve patient outcomes by providing more resources 
+for treatment. The number of patients cured also increased in this simulation, indicating that more patients were
+able to recover from their symptoms. The number of patients that got better also increased, which suggests that
+the additional beds allowed for more patients to receive treatment and improve their condition. However, the number
+of patients that got worse also increased, which is likely due to the higher number of patients in the hospital as a
+result of the increased bed capacity.
 
+#### Upping the number of initial patients and the number of new patients per day
+In the third simulation, we increased the number of initial patients and the number of new patients per day to 100 each.
+This resulted in a higher number of patients discharged and a higher number of patients dead compared to the baseline simulation.
+This suggests that increasing the number of patients in the hospital can lead to more patients being discharged, but also
+increases the risk of patient mortality. The number of patients cured decreased in this simulation, indicating that fewer
+patients were able to recover from their symptoms. The number of patients that got better increased in relation to the
+baseline simulation, which suggests that more patients were able to improve their condition. However, the number of patients
+that got worse also increased by double the original amount, which is likely due to the higher number of patients in the
+hospital.
 
+> As a side note, it is important to bring up the fact that the standard deviation values are quite low, 
+> which suggests that the results are consistent across the different simulations. This is a good sign that the
+> simulation is stable and that the results are reliable.
+> It is also important to remember that the simulations were ran only 10 times, which is not enough to get a
+> full picture of the results. More simulations would be needed to get a more accurate representation of the
+> outcomes.
 
-
+## Conclusion
+In conclusion, the simulation results suggest that increasing the number of beds can help improve patient outcomes by 
+providing more resources for treatment. However, increasing the number of patients in the hospital can also lead to higher
+patient mortality rates. It is important to strike a balance between bed capacity and patient load to ensure that patients
+receive the care they need while minimizing the risk of mortality. Further research is needed to explore the optimal bed
+capacity for different patient populations and conditions. The simulation can be further refined by incorporating additional
+factors such as patient acuity, treatment protocols, and staffing levels to provide a more comprehensive analysis of hospital
+operations. Overall, the simulation provides a valuable tool for evaluating different scenarios and identifying areas for improvement 
+in hospital management and patient care.
 
 
 
