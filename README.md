@@ -52,17 +52,8 @@ This process is then repeated for the set number of days.
 We ran the simulation 10 times (because of time constraints and computational power) for each set of parameters, and we have gotten the following mean values:
 > Note: The standard deviation, min and max values are the mean values of its respective metric per simulation
 
-> ICU beds: 20
-> 
-> Common beds: 20
-> 
-> Initial Patients: 50
-> 
-> Lambda For Poisson: 50
-
-[//]: # (title for table)
-
-
+___
+#### ICU Beds: 20, Common Beds: 20, Initial Patients: 50, Lambda For Poisson: 50
 
 | Metric                                  |  Mean   |  Std Deviation  |   Min   |   Max   |
 |:----------------------------------------|:-------:|:---------------:|:-------:|:-------:|
@@ -75,13 +66,8 @@ We ran the simulation 10 times (because of time constraints and computational po
 | Grave patients that stayed the same     |  13.02  |      3.08       |   8.8   |  17.33  |
 | Critical patients that stayed the same  |  3.34   |      1.61       |  1.23   |  5.66   |
 
-> ICU beds: 5
-> 
-> Common beds: 10
-> 
-> Initial Patients: 50
-> 
-> Lambda For Poisson: 50
+___
+#### ICU Beds: 5, Common Beds: 10, Initial Patients: 50, Lambda For Poisson: 50
 
 | Metric                                  |  Mean   |  Std Deviation  |   Min   |   Max   |
 |:----------------------------------------|:-------:|:---------------:|:-------:|:-------:|
@@ -94,12 +80,6 @@ We ran the simulation 10 times (because of time constraints and computational po
 | Grave patients that stayed the same     |  12.33  |      3.01       |  8.36   |  16.56  |
 | Critical patients that stayed the same  |  2.93   |      1.61       |  1.03   |  5.36   |
 
-
-
-## Graphs
-We have generated the following graphs to show the mean results of the simulations:
-
-[//]: # (graphs)
 
 ## Conclusion
 
