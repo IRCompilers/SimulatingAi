@@ -15,6 +15,7 @@ class Patient(ABC):
         self.age_group = age_group
         self.symptoms: list = self.set_symptoms(allsymptoms)
 
+
     def get_symptoms(self):
         return ' and '.join(self.symptoms)
 
@@ -87,6 +88,9 @@ class Patient(ABC):
         else:
             self.is_dead = True
 
+    def do_nothing(self):
+        pass
+
     def interact(self):
         if len(self.symptoms) == 0:
             self.cure()
@@ -95,26 +99,26 @@ class Patient(ABC):
             return
 
         if self.bed_assigned is None and self.status == 'critical':
-            action = np.random.choice(["cure", "die", "better"], p=[0.05, 0.8, 0.15])
+            action = np.random.choice(["cure", "die", "better", "do_nothing"], p=[0.05, 0.8, 0.05, 0.1])
         elif self.bed_assigned is None and self.status == 'grave':
-            action = np.random.choice(["cure", "die", "better", "twice_better", "worsen"], p=[0.1, 0.4, 0.1, 0.05, 0.35])
+            action = np.random.choice(["cure", "die", "better", "worsen", "do_nothing"], p=[0.05, 0.4, 0.1, 0.15, 0.3])
         elif self.bed_assigned is None and self.status == 'regular':
-            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.4, 0.1, 0.3, 0.2])
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen", "do_nothing"], p=[0.3, 0.1, 0.3, 0.1, 0.2])
 
         elif self.status == 'critical' and self.bed_assigned.typee == 'ICU':
-            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.3, 0.2, 0.3, 0.2])
+            action = np.random.choice(["cure", "die", "better", "twice_better", "do_nothing"], p=[0.1, 0.2, 0.4, 0.15, 0.15])
         elif self.status == 'critical' and self.bed_assigned.typee == 'common':
-            action = np.random.choice(["cure", "die", "better", "twice_better"], p=[0.1, 0.5, 0.3, 0.1])
+            action = np.random.choice(["cure", "die", "better", "twice_better", "do_nothing"], p=[0.05, 0.5, 0.2, 0.1, 0.15])
 
         elif self.status == 'grave' and self.bed_assigned.typee == 'common':
-            action = np.random.choice(["cure", "die", "better", "worsen"], p=[0.1, 0.2, 0.3, 0.4])
+            action = np.random.choice(["cure", "die", "better", "worsen", "do_nothing"], p=[0.1, 0.2, 0.3, 0.2, 0.2])
         elif self.status == 'grave' and self.bed_assigned.typee == 'ICU':
-            action = np.random.choice(["cure", "die", "better", "worsen"], p=[0.2, 0.1, 0.35, 0.35])
+            action = np.random.choice(["cure", "die", "better", "worsen", "do_nothing"], p=[0.2, 0.1, 0.4, 0.1, 0.2])
 
         elif self.status == 'regular' and self.bed_assigned.typee == 'ICU':
-            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.7, 0.05, 0.15, 0.1])
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen", "do_nothing"], p=[0.7, 0.05, 0.1, 0.05, 0.1])
         elif self.status == 'regular' and self.bed_assigned.typee == 'common':
-            action = np.random.choice(["cure", "die", "worsen", "twice_worsen"], p=[0.4, 0.1, 0.3, 0.2])
+            action = np.random.choice(["cure", "die", "worsen", "twice_worsen", "do_nothing"], p=[0.4, 0.1, 0.2, 0.1, 0.2])
 
         getattr(self, action)()
 

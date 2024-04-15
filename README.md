@@ -33,7 +33,7 @@ The patients are then treated with the treatment (medication) recommended by the
 for a specific symptom, that symptom has a high probability of being cured and there's a chance that the patient acquires one
 or more of that drug's side effects.
 
-Then there's the 'evolution' phase. In this phase the patients get cured, die, get better or get worse; all depending on the
+Then there's the 'evolution' phase. In this phase the patients are cured, die, get better or get worse; all depending on the
 amount of symptoms the patient still has, it's status (critical, grave, regular) and the bed assigned. 
 
 The last step is to generate new patients which will be added to the patients that survived the day. The amount of new patients is decided by a Poisson distribution.
@@ -42,23 +42,55 @@ The symptoms are decided randomly from all possible symptoms.
 This process is then repeated for the set number of days.
 
 ## Results
-We ran the simulation 10 times (because of time constraints and computational power), and we have gotten the following mean values:
+We ran the simulation 10 times (because of time constraints and computational power) for each set of parameters, and we have gotten the following mean values:
+> Note: The standard deviation, min and max values are the mean values of its respective metric per simulation
 
-> Mean Deaths Per Day
+> ICU beds: 20
 > 
-> ![Mean Deaths Per Day](   https://i.postimg.cc/zftmf7fM/deaths.png)
+> Common beds: 20
+> 
+> Initial Patients: 50
+> 
+> Lambda For Poisson: 50
 
-> Mean Cured/Discharged Per Day
-> 
-> ![Mean Cured Per Day](https://i.postimg.cc/vH3ChXrm/cured.png)
+| Metric                                 | Mean  | Std Deviation | Min   | Max   |
+|----------------------------------------|-------|---------------|-------|-------|
+| Patients Discharged                    | 20.96 | 3.62          | 16.1  | 25.96 |
+| Patients Dead                          | 26.34 | 5.44          | 19.06 | 34.13 |
+| Patients Cured                         | 2.58  | 1.16          | 1.16  | 4.26  |
+| Patients that got better               | 19.02 | 2.66          | 15.76 | 23.03 |
+| Patients that got worse                | 25.06 | 4.21          | 18.96 | 30.66 |
+| Regular patients that stayed the same  | 8.45  | 2.24          | 5.43  | 11.73 |
+| Grave patients that stayed the same    | 13.02 | 3.08          | 8.8   | 17.33 |
+| Critical patients that stayed the same | 3.34  | 1.61          | 1.23  | 5.66  |
 
->Mean Better Per Day
+> ICU beds: 5
 > 
-> ![Mean Better](https://i.postimg.cc/XYv66tjF/better.png)
+> Common beds: 10
+> 
+> Initial Patients: 50
+> 
+> Lambda For Poisson: 50
 
-> Mean Worse Per Day
-> 
-> ![Mean Worse](https://i.postimg.cc/yx7rXSW9/worse.png)
+| Metric                                 | Mean  | Std Deviation | Min   | Max   |
+|----------------------------------------|-------|---------------|-------|-------|
+| Patients Discharged                    | 15.56 | 3.26          | 11.36 | 20.26 |
+| Patients Dead                          | 31.75 | 5.09          | 24.8  | 38.83 |
+| Patients Cured                         | 0.85  | 0.78          | 0.1   | 2.06  |
+| Patients that got better               | 9.90  | 2.31          | 7.0   | 13.46 |
+| Patients that got worse                | 20.63 | 3.83          | 15.53 | 25.9  |
+| Regular patients that stayed the same  | 6.94  | 2.09          | 3.93  | 9.73  |
+| Grave patients that stayed the same    | 12.33 | 3.01          | 8.36  | 16.56 |
+| Critical patients that stayed the same | 2.93  | 1.61          | 1.03  | 5.36  |
+
+
+
+## Graphs
+We have generated the following graphs to show the mean results of the simulations:
+
+[//]: # (graphs)
+
+## Conclusion
 
 
 

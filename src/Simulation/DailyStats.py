@@ -17,6 +17,10 @@ class Day_Statistics:
         self.grave_patients_cured = 0
         self.regular_patients_cured = 0
 
+        self.critical_patients_discharged = 0
+        self.grave_patients_discharged = 0
+        self.regular_patients_discharged = 0
+
         self.critical_patients_died = 0
         self.grave_patients_died = 0
         self.regular_patients_died = 0
@@ -27,6 +31,10 @@ class Day_Statistics:
         self.grave_to_regular = 0
         self.regular_to_critical = 0
         self.regular_to_grave = 0
+
+        self.stay_critical = 0
+        self.stay_grave = 0
+        self.stay_regular = 0
 
         self.critical_ICU = 0
         self.critical_common = 0
