@@ -162,11 +162,9 @@ class RAG:
 
 if __name__ == '__main__':
 
-    # load_dotenv()
-    # os.environ["TOKENIZERS_PARALLELISM"] = "true"
-    # api_key = os.getenv('GOOGLE_API_KEY')
-
-    api_key = 'AIzaSyATid8iaWN-KS3xZdFA705HVgznzAhlCqs'
+    load_dotenv()
+    os.environ["TOKENIZERS_PARALLELISM"] = "true"
+    api_key = os.getenv('GOOGLE_API_KEY')
 
     data = pd.read_csv('..\..\data\Drugs.csv')
     rag_config = RagConfig(use_persistence=True, use_llm=False, gemini_api_key=api_key)

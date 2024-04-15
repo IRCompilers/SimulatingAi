@@ -1,5 +1,7 @@
 import random
 
+from dotenv import load_dotenv
+
 from src.Entities.Patient import Patient, ICU_Bed, Common_Bed
 from src.Entities.Medicine import Medicine
 from src.Simulation.DailyStats import Day_Statistics
@@ -36,11 +38,9 @@ class Simulation:
 
 
     def create_rag(self):
-        # load_dotenv()
-        # os.environ["TOKENIZERS_PARALLELISM"] = "true"
-        # api_key = os.getenv('GOOGLE_API_KEY')
-
-
+        load_dotenv()
+        os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        api_key = os.getenv('GOOGLE_API_KEY')
 
         data = pd.read_csv('..\..\data\Drugs.csv')
         rag_config = RagConfig(use_persistence=False, use_llm=False, gemini_api_key=api_key)
@@ -219,6 +219,10 @@ class Simulation:
 
 def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     global simulat, AllSymptoms
+
+
+
+
     try:
         sim = Simulation(icu_beds, common_beds, initial_p, lambda_)
         simulat = sim.daily_stats
