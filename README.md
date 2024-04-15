@@ -46,7 +46,20 @@ a context that includes the top documents and the input symptoms, and the respon
 names. The LLM we use in this latest iteration of the RAG is the Gemini model by Google, via their genai API.
 
 ## Database
-> insert
+The data of the drugs and supplements to build the database was extracted from *https://medlineplus.gov/*.
+For the extraction we made a script to scrap the needed information of all the drugs and supplements from the website.
+It was extracted the data of around 1700 drugs/supplements.
+Our database has 4 important information for each drug.
+- Name of the drug or supplement
+- What is this drug/supplement prescribed for?
+- Side Effects
+- URL to see more information about it
+
+All the information was stored in the _Drugs.json_ and _Drugs.csv_ files for its later
+use.
+The script that extracted the data was built in python and for the scrapping of the website we use BeautifulSoup (python library).
+
+
 
 ## Simulation
 The simulation is run for a set number of days (30).
