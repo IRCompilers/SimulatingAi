@@ -11,6 +11,7 @@ from src.Rag.rag_config import RagConfig
 import json
 import os, pathlib
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 
 simulat = []
@@ -39,7 +40,7 @@ class Simulation:
         # os.environ["TOKENIZERS_PARALLELISM"] = "true"
         # api_key = os.getenv('GOOGLE_API_KEY')
 
-        api_key = 'AIzaSyATid8iaWN-KS3xZdFA705HVgznzAhlCqs'
+
 
         data = pd.read_csv('..\..\data\Drugs.csv')
         rag_config = RagConfig(use_persistence=False, use_llm=False, gemini_api_key=api_key)
@@ -144,7 +145,6 @@ class Simulation:
     def simulate(self):
         self.initialize()
         for k in range(30):
-            print(f'Day {k}')
             stats = Day_Statistics(k)
             stats.initial_critical_patients = sum([1 for i in self.patients if i.status == "critical"])
             stats.initial_grave_patients = sum([1 for i in self.patients if i.status == "grave"])
@@ -186,8 +186,11 @@ class Simulation:
                 i.interact()
                 if i.is_cured:
                     self.n_patients -= 1
-                    status = f'{i.status}_patients_cured'
+                    status = f'{i.status}_patients_discharged'
                     stats.__dict__[status] += 1
+                    if len(i.symptoms) == 0:
+                        status = f'{i.status}_patients_cured'
+                        stats.__dict__[status] += 1
                 elif i.is_dead:
                     self.n_patients -= 1
                     status = f'{i.status}_patients_died'
@@ -197,6 +200,8 @@ class Simulation:
                     new_status = i.status
                     if old_status != new_status:
                         stats.__dict__[f'{old_status}_to_{new_status}'] += 1
+                    else:
+                        stats.__dict__[f'stay_{new_status}'] += 1
 
             self.patients = new_p
 
@@ -214,10 +219,6 @@ class Simulation:
 
 def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     global simulat, AllSymptoms
-
-
-
-
     try:
         sim = Simulation(icu_beds, common_beds, initial_p, lambda_)
         simulat = sim.daily_stats
@@ -239,10 +240,72 @@ def get_cured():
 def get_patients_better():
     return [x.critical_to_grave + x.critical_to_regular + x.grave_to_regular for x in simulat]
 
-
 def get_patients_worse():
     return [x.grave_to_critical + x.regular_to_critical + x.regular_to_grave for x in simulat]
 
+def get_patients_discharged():
+    return [x.grave_patients_discharged + x.critical_patients_discharged + x.regular_patients_discharged for x in simulat]
+
+def get_critical_same():
+    return [x.stay_critical for x in simulat]
+
+def get_grave_same():
+    return [x.stay_grave for x in simulat]
+
+def get_regular_same():
+    return [x.stay_regular for x in simulat]
+
+
+def run(icu, common, init, lambda_):
+    deaths = []
+    cured = []
+    better = []
+    worse = []
+    discharged = []
+    critical_same = []
+    grave_same = []
+    regular_same = []
+
+    for i in range(5):
+
+        start = time.time()
+        start_simulation(icu, common, init, lambda_)
+        deaths.append(get_deaths())
+        cured.append(get_cured())
+        better.append(get_patients_better())
+        worse.append(get_patients_worse())
+        discharged.append(get_patients_discharged())
+        critical_same.append(get_critical_same())
+        grave_same.append(get_grave_same())
+        regular_same.append(get_regular_same())
+        end = time.time()
+        taken = end - start
+        minutes = taken // 60
+        print(f'Time taken for Simulation {i}: {minutes} minutes')
+
+    print(f'\n\nICU: {icu} , Common: {common}, Initial Patients: {init}, Lambda for Poisson: {lambda_}')
+    def stats(title, arr):
+        #printing one single value for tabulation
+        print(f'_________________{title}_______________')
+        mean_arr = [np.mean([x[day] for x in arr]) for day in range(30)]
+        headings = [j for j in range(30)]
+        print(mean_arr)
+        print(np.mean([np.mean([x[day] for x in arr]) for day in range(30)]))
+        print(np.mean([np.std([x[day] for x in arr]) for day in range(30)]))
+        print(np.mean([np.min([x[day] for x in arr]) for day in range(30)]))
+        print(np.mean([np.max([x[day] for x in arr]) for day in range(30)]))
+        plt.plot(headings, mean_arr)
+        plt.savefig(f'{title}_{icu}_{common}_{init}_{lambda_}.png')
+
+
+    stats('Deaths', deaths)
+    stats('Cured', cured)
+    stats('Better', better)
+    stats('Worse', worse)
+    stats('Discharged', discharged)
+    stats('Critical_Same', critical_same)
+    stats('Grave_Same', grave_same)
+    stats('Regular_Same', regular_same)
 
 
 #__________INITIALIZATION___________
@@ -259,63 +322,4 @@ for i in doc:
 
 AllSymptoms = list(set(poss))
 
-deaths = []
-cured = []
-better = []
-worse = []
-
-for i in range(10):
-    start_simulation(1, 25, 93, 50)
-    deaths.append(get_deaths())
-    cured.append(get_cured())
-    better.append(get_patients_better())
-    worse.append(get_patients_worse())
-
-#get mean, std, min, max
-print('_________________Deaths_______________')
-#plot all 30 days
-
-for_plot = []
-headings = [i for i in range(30)]
-for day in range(30):
-    values = [x[day] for x in deaths]
-    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
-    for_plot.append(np.mean(values))
-
-plt.plot(headings, for_plot)
-#make "Daily deaths" the heading of the plot
-plt.title('Daily deaths')
-plt.show()
-
-for_plot = []
-print('_________________Cured_______________')
-for day in range(30):
-    values = [x[day] for x in cured]
-    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
-    for_plot.append(np.mean(values))
-
-plt.plot(headings, for_plot)
-plt.title('Daily cured')
-plt.show()
-
-for_plot = []
-print('_________________Better_______________')
-for day in range(30):
-    values = [x[day] for x in better]
-    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
-    for_plot.append(np.mean(values))
-
-plt.plot(headings, for_plot)
-plt.title('Daily better')
-plt.show()
-
-for_plot = []
-print('_________________Worse_______________')
-for day in range(30):
-    values = [x[day] for x in worse]
-    print(f'Day {day}: Mean: {np.mean(values)}, Std: {np.std(values)}, Min: {np.min(values)}, Max: {np.max(values)}')
-    for_plot.append(np.mean(values))
-
-plt.plot(headings, for_plot)
-plt.title('Daily worse')
-plt.show()
+run(5,10,50,50)
