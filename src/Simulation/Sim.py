@@ -41,12 +41,9 @@ class Simulation:
 
 
     def create_rag(self):
-        # load_dotenv()
-        # os.environ["TOKENIZERS_PARALLELISM"] = "true"
-        # api_key = os.getenv('GOOGLE_API_KEY')
-
-        api_key = 'ahsh'
-
+        load_dotenv()
+        os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        api_key = os.getenv('GOOGLE_API_KEY')
 
         data = pd.read_csv('..\..\data\Drugs.csv')
         rag_config = RagConfig(use_persistence=False, use_llm=False, gemini_api_key=api_key)
