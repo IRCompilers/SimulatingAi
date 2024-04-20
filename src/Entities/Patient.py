@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from src.Entities.Medicine import Medicine
 
 class Patient(ABC):
-    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = None):
+    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = []):
         self.index = index
         self.status = status
         self.bed_assigned = bed_assigned
@@ -128,6 +128,7 @@ class Patient(ABC):
     def __repr__(self):
         return self.__str__()
 
+# _________________________________________________________________
 class Beds:
     def __init__(self, index, typee):
         self.index = index

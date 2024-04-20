@@ -15,6 +15,7 @@ import os, pathlib
 import pandas as pd
 import time
 import matplotlib.pyplot as plt
+from src.helpers.a_star import get_assignment
 
 simulat = []
 AllSymptoms = []
@@ -31,6 +32,8 @@ class Simulation:
         self.beds = []
         self.daily_stats = []
         self.costs = np.zeros((n_patients, n_icu_beds + n_common_beds))
+        self.costs = [[0 for i in range(self.n_patients)] for j in range(self.n_icu_beds + self.n_common_beds)]
+        self.costs2 = [[0 for i in range(self.n_patients)] for j in range(self.n_icu_beds + self.n_common_beds)]
 
         self.rag = self.create_rag()
 
@@ -38,9 +41,12 @@ class Simulation:
 
 
     def create_rag(self):
-        load_dotenv()
-        os.environ["TOKENIZERS_PARALLELISM"] = "true"
-        api_key = os.getenv('GOOGLE_API_KEY')
+        # load_dotenv()
+        # os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        # api_key = os.getenv('GOOGLE_API_KEY')
+
+        api_key = 'ahsh'
+
 
         data = pd.read_csv('..\..\data\Drugs.csv')
         rag_config = RagConfig(use_persistence=False, use_llm=False, gemini_api_key=api_key)
@@ -61,12 +67,16 @@ class Simulation:
             self.beds.append(Common_Bed(i))
 
     def set_costs_matrix(self):
-        self.costs = np.zeros((len(self.patients), self.n_icu_beds + self.n_common_beds))
-        for i, p in enumerate(self.patients):
-            for j, n in enumerate(self.beds):
-                self.costs[i, j] = self.calculate_cost(p, n)
+        self.costs = [[0 for i in range(len(self.patients))] for j in range(self.n_icu_beds + self.n_common_beds)]
+        self.costs2 = [[0 for i in range(len(self.patients))] for j in range(self.n_icu_beds + self.n_common_beds)]
 
-    def calculate_cost(self, patient, bed):
+        for i, p in enumerate(self.patients):
+            for j,n in enumerate(self.beds):
+                self.costs[j][i] = self.calculate_cost_g(p,n)
+                self.costs2[j][i] = self.calculate_cost_h(p)
+
+
+    def calculate_cost_g(self, patient, bed):
 
         if patient.age_group == 'senior' and patient.status == "critical" and bed.typee == "ICU":
             return 1
@@ -107,10 +117,12 @@ class Simulation:
         elif patient.age_group == 'young_adult' and patient.status == "regular" and bed.typee == "common":
             return 15
 
+    def calculate_cost_h(self, patient):
+        return len(patient.symptoms)
+
     def assign_beds(self):
         assignments = []
-        # row_ind, col_ind = hg.assign_beds(self.costs)
-        row_ind, col_ind = linear_sum_assignment(self.costs)
+        col_ind, row_ind = get_assignment(self.costs, self.costs2, self.n_icu_beds)
         for i in range(len(row_ind)):
             self.patients[row_ind[i]].bed_assigned = self.beds[col_ind[i]]
             assignments.append(f'{str(self.patients[row_ind[i]])} -> {str(self.beds[col_ind[i]])}')
@@ -144,7 +156,8 @@ class Simulation:
 
     def simulate(self):
         self.initialize()
-        for k in range(30):
+        for k in range(5):
+            print(f'Day {k}')
             stats = Day_Statistics(k)
             stats.initial_critical_patients = sum([1 for i in self.patients if i.status == "critical"])
             stats.initial_grave_patients = sum([1 for i in self.patients if i.status == "grave"])
@@ -165,7 +178,6 @@ class Simulation:
             for p in self.patients:
                 symptoms.append(p.get_symptoms())
 
-            # medications = self.rag.query_medications_for_patients(symptoms)
             medications = []
 
             for i in range(0,len(symptoms),20):
@@ -219,10 +231,6 @@ class Simulation:
 
 def start_simulation(icu_beds, common_beds, initial_p, lambda_):
     global simulat, AllSymptoms
-
-
-
-
     try:
         sim = Simulation(icu_beds, common_beds, initial_p, lambda_)
         simulat = sim.daily_stats
@@ -270,7 +278,7 @@ def run(icu, common, init, lambda_):
     grave_same = []
     regular_same = []
 
-    for i in range(5):
+    for i in range(1):
 
         start = time.time()
         start_simulation(icu, common, init, lambda_)
@@ -291,15 +299,14 @@ def run(icu, common, init, lambda_):
     def stats(title, arr):
         #printing one single value for tabulation
         print(f'_________________{title}_______________')
-        mean_arr = [np.mean([x[day] for x in arr]) for day in range(30)]
-        headings = [j for j in range(30)]
+        mean_arr = [np.mean([x[day] for x in arr]) for day in range(5)]
         print(mean_arr)
-        print(np.mean([np.mean([x[day] for x in arr]) for day in range(30)]))
-        print(np.mean([np.std([x[day] for x in arr]) for day in range(30)]))
-        print(np.mean([np.min([x[day] for x in arr]) for day in range(30)]))
-        print(np.mean([np.max([x[day] for x in arr]) for day in range(30)]))
-        plt.plot(headings, mean_arr)
-        plt.savefig(f'{title}_{icu}_{common}_{init}_{lambda_}.png')
+        print(f'Mean: {np.mean([np.mean([x[day] for x in arr]) for day in range(5)])}')
+        print(f'Variance: {np.mean([np.var([x[day] for x in arr]) for day in range(5)])}')
+        print(f'Std:{np.mean([np.std([x[day] for x in arr]) for day in range(5)])}')
+        print(f'Min: {np.mean([np.min([x[day] for x in arr]) for day in range(5)])}')
+        print(f'Max: {np.mean([np.max([x[day] for x in arr]) for day in range(5)])}')
+
 
 
     stats('Deaths', deaths)
@@ -326,4 +333,4 @@ for i in doc:
 
 AllSymptoms = list(set(poss))
 
-run(5,10,50,50)
+run(15,20,10,5)
