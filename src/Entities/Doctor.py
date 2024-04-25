@@ -35,3 +35,6 @@ class Doctor():
 
     def assign_patient(self, patient):
         self.patients.append(patient)
+
+    def reset(self):
+        self.patients = []

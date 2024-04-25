@@ -18,12 +18,15 @@ class Patient(ABC):
         self.symptoms: list = self.set_symptoms(allsymptoms)
         self.doc_assigned = None
         self.specialties_needed = {i : 0 for i in specialties}
-        self.set_specialties_needed(Symptom_Specialty)
+        self.Symptom_Specialty = Symptom_Specialty
+        self.set_specialties_needed()
 
-    def set_specialties_needed(self, Symptom_Specialty = {}):
+    def set_specialties_needed(self):
+        dic = {i : 0 for i in specialties}
         for i in self.symptoms:
-            sp = Symptom_Specialty[i]
-            self.specialties_needed[sp] += 1
+            sp = self.Symptom_Specialty[i]
+            dic[sp] += 1
+        self.specialties_needed = dic
 
 
     def get_symptoms(self):
@@ -45,18 +48,23 @@ class Patient(ABC):
             if len(self.symptoms) == 0:
                 break
 
-            #cures the symptom with a 75% prob
-            #gets a side_effect with a 10%
-
             for sym in self.symptoms:
                 if current.treats(sym):
+                    sp = self.Symptom_Specialty[sym]
+                    factor_cure = 0.5
+                    factor_side_effect = 0.5
+                    if self.doc_assigned.specialty == sp:
+                        factor_cure = 0.9
+                        factor_side_effect = 0.1
+
                     x = random.random()
-                    if x > 0.25:
+                    if x > factor_cure:
                         self.symptoms.remove(sym)
                     y = random.random()
-                    if y < 0.1:
+                    if y < factor_side_effect:
                         self.symptoms.append(random.choice(current.side_effects))
 
+        self.set_specialties_needed()
 
 
     def cure(self):

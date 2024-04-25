@@ -20,6 +20,7 @@ from src.helpers.a_star import get_assignment, tabulate_values
 import google.generativeai as genai
 
 from src.Entities.Doctor import Doctor, specialties
+from src.helpers.doc_assign import assign_doc_patient
 
 
 simulat = []
@@ -188,6 +189,21 @@ class Simulation:
                 new_regular_patients += 1
 
         return new_critical_patients, new_grave_patients, new_regular_patients
+
+    def assign_doctors(self):
+
+        for i in self.doctors:
+            i.reset()
+
+        pat = [i for i in self.patients if i.bed_assigned is not None]
+
+        permutation = assign_doc_patient(self.doctors, pat , self.map_symp_specialty)
+        for i, doc in enumerate(permutation):
+            doctor = self.doctors[doc]
+            patient = pat[i]
+            doctor.assign_patient(patient)
+            patient.doc_assigned = doctor
+
 
     def simulate(self):
         self.initialize()

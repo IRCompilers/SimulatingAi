@@ -12,3 +12,4 @@ def assign_doc_patient(doctors: [Doctor], patients:[Patient], map_sp_sym: dict):
 
     This function assigns patients to doctors based on the specialties needed by the patient.
     """
+    return []
