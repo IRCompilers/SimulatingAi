@@ -204,6 +204,8 @@ class Simulation:
             doctor.assign_patient(patient)
             patient.doc_assigned = doctor
 
+        print(f'Patients assigned to doctors: {permutation}')
+
 
     def simulate(self):
         self.initialize()
@@ -227,6 +229,8 @@ class Simulation:
                 bed = 'none' if i.bed_assigned is None else i.bed_assigned.typee
                 var = f'{stat}_{bed}'
                 stats.__dict__[var] += 1
+
+            self.assign_doctors()
 
             new_p = []
             symptoms = []
