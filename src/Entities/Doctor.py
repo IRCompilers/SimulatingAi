@@ -1,3 +1,5 @@
+import random
+
 specialties = ['cardiology',
                'dermatology',
                'endocrinology',
@@ -38,3 +40,23 @@ class Doctor():
 
     def reset(self):
         self.patients = []
+
+    def administer_medicine(self, rag, all_medicines, map_sp_sym):
+        symptoms = []
+        for p in self.patients:
+            symptoms.append(p.get_symptoms())
+
+        medications = rag.query_medications_for_patients(symptoms)
+
+        for k, i in enumerate(self.patients):
+            treatment = medications[k]
+            prob = sum([map_sp_sym[self.specialty][sym] for sym in i.symptoms])
+            if prob > 0.6:
+                i.doctor_interaction(treatment, all_medicines)
+            elif prob > 0.1:
+                ran_med = random.choice(all_medicines)
+                i.doctor_interaction([ran_med.name], all_medicines)
+            else:
+                i.die()
+
+

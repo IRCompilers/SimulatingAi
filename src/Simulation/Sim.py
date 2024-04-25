@@ -232,29 +232,13 @@ class Simulation:
 
             self.assign_doctors()
 
+            for i in self.doctors:
+                i.administer_medicine(self.rag, AllMedicines, self.map_symp_specialty)
+
             new_p = []
-            symptoms = []
-            for p in self.patients:
-                symptoms.append(p.get_symptoms())
-
-            medications = []
-
-            for i in range(0, len(symptoms), 5):
-                if i + 4 > len(symptoms) - 1:
-                    j = len(symptoms) - 1
-                else:
-                    j = i + 4
-
-                med = self.rag.query_medications_for_patients(symptoms[i:j + 1])
-
-                medications.extend(med)
-
 
             for ind, i in enumerate(self.patients):
                 old_status = i.status
-
-                if i.bed_assigned is not None:
-                    i.doctor_interaction(medications[ind], AllMedicines)
 
                 i.interact()
                 if i.is_cured:

@@ -56,7 +56,6 @@ class Patient(ABC):
                     if self.doc_assigned.specialty == sp:
                         factor_cure = 0.9
                         factor_side_effect = 0.1
-
                     x = random.random()
                     if x > factor_cure:
                         self.symptoms.remove(sym)
