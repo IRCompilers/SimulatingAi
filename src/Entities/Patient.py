@@ -4,9 +4,11 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from abc import ABC, abstractmethod
 from src.Entities.Medicine import Medicine
+from src.Entities.Doctor import specialties
+
 
 class Patient(ABC):
-    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = []):
+    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = [], Symptom_Specialty = {}):
         self.index = index
         self.status = status
         self.bed_assigned = bed_assigned
@@ -14,6 +16,14 @@ class Patient(ABC):
         self.is_dead = False
         self.age_group = age_group
         self.symptoms: list = self.set_symptoms(allsymptoms)
+        self.doc_assigned = None
+        self.specialties_needed = {i : 0 for i in specialties}
+        self.set_specialties_needed(Symptom_Specialty)
+
+    def set_specialties_needed(self, Symptom_Specialty = {}):
+        for i in self.symptoms:
+            sp = Symptom_Specialty[i]
+            self.specialties_needed[sp] += 1
 
 
     def get_symptoms(self):
@@ -123,7 +133,7 @@ class Patient(ABC):
         getattr(self, action)()
 
     def __str__(self):
-        return f'{self.status} {self.age_group}'
+        return f'specialties needed: {self.specialties_needed}, symptoms: {self.get_symptoms()}'
 
     def __repr__(self):
         return self.__str__()

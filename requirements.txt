@@ -5,3 +5,10 @@ scikit-learn~=1.4.0
 dill~=0.3.6
 pydantic~=2.6.0
 python-dotenv~=1.0.1
+
+google~=3.0.0
+numpy~=1.26.4
+experta~=1.9.4
+scipy~=1.12.0
+nltk~=3.8.1
+matplotlib~=3.8.2

@@ -1,6 +1,11 @@
 from queue import PriorityQueue
 import numpy as np
 from copy import deepcopy
+import tabulate
+import matplotlib.pyplot as plt
+
+heur = []
+nheur = []
 
 class MaskMatrix:
     def __init__(self, matrix, cost):
@@ -16,12 +21,59 @@ class MaskMatrix:
     def __gt__(self, other):
         return self.cost > other.cost
 
-def calculate_cost(mask_matrix, g_costs_matrix, h_costs_matrix):
+def h_left(mask_matrix):
+    count = 0
+    count1 = 0
+    for j in range(len(mask_matrix[0])):
+        if [mask_matrix[i][j] for i in range(len(mask_matrix))].count(1) == 0:
+            count +=1
+
+    for i in range(len(mask_matrix)):
+        if mask_matrix[i].count(1) == 0:
+            count1 += 1
+    return min(count, count1)
+
+def h_cost(mask_matrix, patients):
+    costs = {'senior': 0, 'adult':1, 'young_adult':2}
+    costs1 = {'critical':0, 'grave': 1, 'regular': 2}
+
+    cols = []
+    rows = []
+    for i in range(len(mask_matrix)):
+        if mask_matrix[i].count(1) == 0:
+            rows.append(i)
+
+    for j in range(len(mask_matrix[0])):
+        if [mask_matrix[i][j] for i in range(len(mask_matrix))].count(1) == 0:
+            cols.append(j)
+
+    amount = min(len(cols), len(rows))
+
+
+    # patients
+    costs_ = []
+    for j in range(len(mask_matrix[0])):
+        cost = 0
+        if [mask_matrix[i][j] for i in range(len(mask_matrix))].count(1) == 0:
+            pat = patients[j]
+            cost += costs[pat.age_group]
+            cost += costs1[pat.status]
+            costs_.append(cost)
+    costs_.sort()
+    return sum(costs_[:amount])
+
+
+def h_0(mask_matrix, patients):
+    return 0
+
+
+def calculate_cost(mask_matrix, g_costs_matrix, h_costs_matrix, patients):
     res = 0
     for i in range(len(mask_matrix)):
         for j in range(len(mask_matrix[0])):
             res += mask_matrix[i][j] * g_costs_matrix[i][j]
-            res += mask_matrix[i][j] * h_costs_matrix[i][j]
+            # res += mask_matrix[i][j] * h_costs_matrix[i][j]
+    res += h_costs_matrix(mask_matrix, patients)
     return res
 
 def expand(mask_matrix, ind_reg):
@@ -94,21 +146,23 @@ def valid_final(matrix):
     return sum([matrix[i].count(1) for i in range(len(matrix))]) == min(len(matrix), len(matrix[0]))
 
 
-def astar(g_costs_matrix, h_costs_matrix,ind_reg):
+def astar(g_costs_matrix, h_costs_matrix,ind_reg, patients):
     #initialize
     start = [[0 for i in range(len(g_costs_matrix[0]))] for j in range(len(g_costs_matrix))]
-    start_cost = calculate_cost(start, g_costs_matrix, h_costs_matrix)
+    start_cost = calculate_cost(start, g_costs_matrix, h_costs_matrix, patients)
     start_node = MaskMatrix(start, start_cost)
     pq = PriorityQueue()
     pq.put(start_node)
+    count = 0
 
     while not pq.empty():
         current = pq.get()
+        count += 1
 
         if valid_final(current.matrix):
-            return current.matrix
+            return current, count
         for child in expand(current.matrix, ind_reg):
-            cost = calculate_cost(child, g_costs_matrix, h_costs_matrix)
+            cost = calculate_cost(child, g_costs_matrix, h_costs_matrix, patients)
             node = MaskMatrix(child, cost)
             pq.put(node)
 
@@ -159,9 +213,18 @@ def test():
     assert not valid_final([[1,0],[0,1],[1,0]])
 
 
-def get_assignment(g_costs, h_costs, ind_reg):
-    assignment = astar(g_costs, h_costs, ind_reg)
+def get_assignment(g_costs, h_costs, ind_reg, patients):
+    assignment, cost = astar(g_costs, h_cost, ind_reg, patients)
+    assignment1, cost1 = astar(g_costs, h_0, ind_reg, patients)
+
+    heur.append(cost)
+    nheur.append(cost1)
+
     row, col = [], []
+
+    assignment = assignment.matrix
+
+    assert calculate_cost(assignment, g_costs, h_0, patients) == calculate_cost(assignment1.matrix, g_costs, h_0, patients)
 
     for i in range(len(assignment)):
         for j in range(len(assignment[0])):
@@ -170,4 +233,32 @@ def get_assignment(g_costs, h_costs, ind_reg):
                 col.append(j)
 
     return row, col
+
+
+def tabulate_values():
+    """
+    tabulate the values of the heuristic and non heuristic
+    headings are on the first column, so the table is horizontal
+    :return: None
+    """
+    val1 = heur[:20]
+    val2 = nheur[:20]
+    val1.insert(0, 'Heuristic')
+    val2.insert(0, 'Non Heuristic')
+    print(tabulate.tabulate([val1, val2], tablefmt='fancy_grid'))
+
+    assert [x > y for x, y in zip(heur, nheur)], f'heuristic value is not greater than non heuristic value'
+
+    decrease_pctg = [((y - x) / y)*100 for x, y in zip(heur, nheur)]
+    # print with 2 decimals
+    print(f'Percentage decrease in cost: {np.mean(decrease_pctg):.2f}%')
+    print(f'Maximum decrease found: {max(decrease_pctg)}')
+
+    decrease_pctg.sort()
+    plt.scatter(x = [i for i in range(len(decrease_pctg))], y= decrease_pctg)
+    plt.show()
+
+    #plot distribution of decrease
+    plt.hist(decrease_pctg, bins=10)
+    plt.show()
 
