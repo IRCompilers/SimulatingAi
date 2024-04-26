@@ -24,10 +24,11 @@ specialties = ['cardiology',
                'family medicine']
 
 class Doctor():
-    def __init__(self, specialty, max_patients):
+    def __init__(self, specialty, max_patients, name):
         self.specialty = specialty
         self.max_patients = max_patients
         self.patients = []
+        self.name = name
 
     def __str__(self):
         return f'{self.specialty} doctor'
