@@ -8,7 +8,7 @@ from src.Entities.Doctor import specialties
 
 
 class Patient(ABC):
-    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = [], Symptom_Specialty = {}):
+    def __init__(self, index, status, age_group, bed_assigned=None, allsymptoms = [], Symptom_Specialty = {}, name = ""):
         self.index = index
         self.status = status
         self.bed_assigned = bed_assigned
@@ -20,6 +20,7 @@ class Patient(ABC):
         self.specialties_needed = {i : 0 for i in specialties}
         self.Symptom_Specialty = Symptom_Specialty
         self.set_specialties_needed()
+        self.name = name
 
     def set_specialties_needed(self):
         dic = {i : 0 for i in specialties}
@@ -140,7 +141,7 @@ class Patient(ABC):
         getattr(self, action)()
 
     def __str__(self):
-        return f'specialties needed: {self.specialties_needed}, symptoms: {self.get_symptoms()}'
+        return f'{self.name} with status {self.status} and age group {self.age_group}'
 
     def __repr__(self):
         return self.__str__()

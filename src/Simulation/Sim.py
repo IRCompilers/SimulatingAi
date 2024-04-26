@@ -22,6 +22,26 @@ import google.generativeai as genai
 from src.Entities.Doctor import Doctor, specialties
 from src.helpers.doc_assign import assign_doc_patient
 
+names = ['John', 'Mary', 'Alice', 'Bob', 'Eve', 'Charlie', 'David', 'Elena', 'Fiona', 'George', 'Helen', 'Ivan', 'Julia',
+         'Kevin', 'Linda', 'Michael', 'Nancy', 'Oscar', 'Paul', 'Quinn', 'Rachel', 'Steve', 'Tina', 'Ursula', 'Victor',
+         'Wendy', 'Xavier', 'Yvonne', 'Zack', 'Abigail', 'Benjamin', 'Catherine', 'Daniel', 'Emily', 'Frank', 'Grace',
+         'Henry', 'Isabel', 'Jack', 'Katherine', 'Liam', 'Megan', 'Nathan', 'Olivia', 'Peter', 'Quincy', 'Rebecca',
+         'Samuel', 'Tiffany', 'Ulysses', 'Violet', 'William', 'Xander', 'Yasmine', 'Zoe', 'Adam', 'Bella', 'Charles',
+         'Diana', 'Ethan', 'Fiona', 'Gerald', 'Hannah', 'Ian', 'Jasmine', 'Kyle', 'Laura', 'Mason', 'Nina', 'Owen',
+         'Patricia', 'Quentin', 'Rose', 'Stephen', 'Tara', 'Usher', 'Victoria', 'Walter', 'Xena', 'Yara', 'Zara', 'Ava',
+         'Bart', 'Cara', 'Dylan', 'Ella', 'Felix', 'Gina', 'Harry', 'Iris', 'Jake', 'Kara', 'Liam', 'Mia', 'Nathanial',
+         'Olivia', 'Peter', 'Quinn', 'Ryan', 'Sophia', 'Tom', 'Ursula', 'Victor', 'Wendy', 'Xander', 'Yvonne', 'Zack']
+
+surnames = ['Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson',
+            'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark',
+            'Rodriguez', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'Hernandez', 'King', 'Wright', 'Lopez',
+            'Hill', 'Scott', 'Green', 'Adams', 'Baker', 'Gonzalez', 'Nelson', 'Carter', 'Mitchell', 'Perez', 'Roberts',
+            'Turner', 'Phillips', 'Campbell', 'Parker', 'Evans', 'Edwards', 'Collins', 'Stewart', 'Sanchez', 'Morris',
+            'Rogers', 'Reed', 'Cook', 'Morgan', 'Bell', 'Murphy', 'Bailey', 'Rivera', 'Cooper', 'Richardson', 'Cox',
+            'Howard', 'Ward', 'Torres', 'Peterson', 'Gray', 'Ramirez', 'James', 'Watson', 'Brooks', 'Kelly', 'Sanders',
+            'Price', 'Bennett', 'Wood', 'Barnes', 'Ross', 'Henderson', 'Coleman', 'Jenkins', 'Perry', 'Powell', 'Long',
+            'Patterson', 'Hughes', 'Flores', 'Washington', 'Butler', 'Simmons', 'Foster', 'Gonzales', 'Bryant', 'Alexander',
+            'Russell', 'Griffin', 'Diaz', 'Hayes']
 
 simulat = []
 AllSymptoms = []
@@ -106,24 +126,31 @@ class Simulation:
 
         self.rag = rag
 
-        self.doctors = self.generate_docs(20)
+        self.doctors = self.generate_docs()
 
         self.map_symp_specialty = self.map_symp_specialty()
 
         self.simulate()
 
-    def generate_docs(self, amount):
+    def generate_docs(self):
         doctors = []
+
+        beds = self.n_icu_beds + self.n_common_beds
+        amount = beds // 3
+        amount += 1 if beds % 3 != 0 else 0
+
         for i in range(amount):
             doc = Doctor(specialty=np.random.choice(specialties),
-                         max_patients=random.randint(1, 10))
+                         max_patients=3,
+                         name=np.random.choice(names) + " " + np.random.choice(surnames))
             doctors.append(doc)
         return doctors
 
     def generate_patient(self, index):
         age = np.random.choice(["young_adult", "adult", "senior"], p=[0.3, 0.4, 0.3])
         status = np.random.choice(["grave", "critical", "regular"], p=[0.3, 0.2, 0.5])
-        return Patient(index, status, age, allsymptoms=AllSymptoms, Symptom_Specialty=Symptom_Specialty)
+        name = np.random.choice(names) + " " + np.random.choice(surnames)
+        return Patient(index, status, age, allsymptoms=AllSymptoms, Symptom_Specialty=Symptom_Specialty, name=name)
 
     def map_symp_specialty(self):
         map = {}
