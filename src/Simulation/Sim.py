@@ -126,18 +126,22 @@ class Simulation:
 
         self.rag = rag
 
-        self.doctors = self.generate_docs(20)
+        self.doctors = self.generate_docs()
 
         self.map_symp_specialty = self.map_symp_specialty()
 
         self.simulate()
 
-    def generate_docs(self, amount):
+    def generate_docs(self):
         doctors = []
+
+        beds = self.n_icu_beds + self.n_common_beds
+        amount = beds // 3
+        amount += 1 if beds % 3 != 0 else 0
 
         for i in range(amount):
             doc = Doctor(specialty=np.random.choice(specialties),
-                         max_patients=random.randint(1, 10),
+                         max_patients=3,
                          name=np.random.choice(names) + " " + np.random.choice(surnames))
             doctors.append(doc)
         return doctors
