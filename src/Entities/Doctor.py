@@ -31,7 +31,7 @@ class Doctor():
         self.name = name
 
     def __str__(self):
-        return f'{self.specialty} doctor'
+        return f'{self.name}: {", ".join([p.name for p in self.patients]) if len(self.patients) > 0 else "No patients"}'
 
     def __repr__(self):
         return self.__str__()
@@ -52,11 +52,11 @@ class Doctor():
         for k, i in enumerate(self.patients):
             treatment = medications[k]
             prob = sum([map_sp_sym[self.specialty][sym] for sym in i.symptoms])
-            if prob > 0.6:
-                i.doctor_interaction(treatment, all_medicines)
+            if prob > 0.5:
+                i.doctor_interaction(treatment, all_medicines, True)
             elif prob > 0.1:
                 ran_med = random.choice(all_medicines)
-                i.doctor_interaction([ran_med.name], all_medicines)
+                i.doctor_interaction([ran_med.name], all_medicines, False)
             else:
                 i.die()
 

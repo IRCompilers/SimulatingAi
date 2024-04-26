@@ -136,14 +136,19 @@ class Simulation:
         doctors = []
 
         beds = self.n_icu_beds + self.n_common_beds
-        amount = beds // 3
-        amount += 1 if beds % 3 != 0 else 0
+        amount = 0
 
-        for i in range(amount):
+        while True:
+            if amount >= beds:
+                break
+            val = random.randint(1, 4)
+            amount += val
+
             doc = Doctor(specialty=np.random.choice(specialties),
-                         max_patients=3,
+                         max_patients=val,
                          name=np.random.choice(names) + " " + np.random.choice(surnames))
             doctors.append(doc)
+
         return doctors
 
     def generate_patient(self, index):
@@ -175,13 +180,11 @@ class Simulation:
 
     def set_costs_matrix(self):
         self.costs = [[0 for i in range(len(self.patients))] for j in range(self.n_icu_beds + self.n_common_beds)]
-        self.costs2 = [[0 for i in range(len(self.patients))] for j in range(self.n_icu_beds + self.n_common_beds)]
 
         for i, p in enumerate(self.patients):
             for j, n in enumerate(self.beds):
                 self.costs[j][i] = calculate_cost_g(p, n)
-                a = calculate_cost_h(p)
-                self.costs2[j][i] = a if a <= self.costs[j][i] else self.costs[j][i]
+
 
     def assign_beds(self):
         assignments = []
@@ -231,17 +234,12 @@ class Simulation:
             doctor.assign_patient(patient)
             patient.doc_assigned = doctor
 
-        print(f'Patients assigned to doctors: {permutation}')
-
 
     def simulate(self):
         self.initialize()
 
         for k in range(10):
             stats = Day_Statistics(k)
-
-            for i in self.patients:
-                print(i)
 
             stats.initial_critical_patients = sum([1 for i in self.patients if i.status == "critical"])
             stats.initial_grave_patients = sum([1 for i in self.patients if i.status == "grave"])
@@ -308,7 +306,7 @@ def start_simulation(icu_beds, common_beds, initial_p, lambda_, h):
     try:
         sim = Simulation(icu_beds, common_beds, initial_p, lambda_, h, rag)
         simulat = sim.daily_stats
-        return True
+        return sim
     except Exception as e:
         print(e)
         return False
@@ -362,7 +360,7 @@ def run(icu, common, init, lambda_, h):
     regular_same = []
 
     for i in range(1):
-        start_simulation(icu, common, init, lambda_, h)
+        sim = start_simulation(icu, common, init, lambda_, h)
         deaths.append(get_deaths())
         cured.append(get_cured())
         better.append(get_patients_better())
@@ -375,21 +373,15 @@ def run(icu, common, init, lambda_, h):
     print(f'\n\nICU: {icu} , Common: {common}, Initial Patients: {init}, Lambda for Poisson: {lambda_}')
 
     def stats(title, arr):
-        # printing one single value for tabulation
-        print(f'_________________{title}_______________')
-        mean_arr = [np.mean([x[day] for x in arr]) for day in range(10)]
-        print(mean_arr)
-        print(f'Mean: {np.mean([np.mean([x[day] for x in arr]) for day in range(10)])}')
-        print(f'Variance: {np.mean([np.var([x[day] for x in arr]) for day in range(10)])}')
-        print(f'Std:{np.mean([np.std([x[day] for x in arr]) for day in range(10)])}')
-        print(f'Min: {np.mean([np.min([x[day] for x in arr]) for day in range(10)])}')
-        print(f'Max: {np.mean([np.max([x[day] for x in arr]) for day in range(10)])}')
 
-    stats('Deaths', deaths)
-    stats('Cured', cured)
+        mean_arr = [np.mean([x[day] for x in arr]) for day in range(10)]
+        return sum(mean_arr)
+
+    d = stats('Deaths', deaths)
+    c = stats('Cured', cured)
     stats('Better', better)
     stats('Worse', worse)
-    stats('Discharged', discharged)
+    a = stats('Discharged', discharged)
     stats('Critical_Same', critical_same)
     stats('Grave_Same', grave_same)
     stats('Regular_Same', regular_same)
@@ -407,13 +399,15 @@ def run(icu, common, init, lambda_, h):
                f'Daily worse: {[np.mean([x[day] for x in worse]) for day in range(10)]}'
                f'\n Also give your opinion on the hospital management.')
 
-    print(context)
+    # print(context)
 
-    print(genai.GenerativeModel('gemini-pro').generate_content(context).text)
+    # print(genai.GenerativeModel('gemini-pro').generate_content(context).text)
+
+    return d, c, a, len(sim.doctors)
 
 
 # __________INITIALIZATION___________
-rag = None
+rag = create_rag()
 
 poss = []
 # load all possible symptoms
@@ -434,8 +428,162 @@ for i in AllSymptoms:
     Symptom_Specialty[i] = np.random.choice(specialties)
 
 
-run(5, 10, 5, 5, calculate_cost_h)
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+#
+#
+#
+class SimStats:
+    def __init__(self, icu, common, deaths, cured, discharged, doctors, initial_patients, lambda_):
+        self.icu = icu
+        self.common = common
+        self.deaths = deaths
+        self.cured = cured
+        self.discharged = discharged
+        self.doctors = doctors
+
+        self.cost = self.__cost_of_simulation()
+
+        self.initial_patients = initial_patients
+        self.lambda_ = lambda_
+
+    def __cost_of_beds(self):
+        return self.icu * 10000 + self.common * 3000
+
+    def __cost_of_doctors(self):
+        return self.doctors * 4000
+
+    def __cost_of_deaths(self):
+        return self.deaths * 3000
+
+    def __cost_of_cured(self):
+        return self.cured * 2000
+
+    def __cost_of_discharged(self):
+        return self.discharged * 2500
+
+    def __cost_of_simulation(self):
+        return (self.__cost_of_beds() + self.__cost_of_doctors() + self.__cost_of_deaths() - self.__cost_of_cured()
+                - self.__cost_of_discharged())
+
+    def __lt__(self, other):
+        return self.cost < other.cost
+
+    def __eq__(self, other):
+        return self.cost == other.cost
+
+    def __gt__(self, other):
+        return self.cost > other.cost
+
+    def __str__(self):
+        return f'ICU: {self.icu}, Common: {self.common}, Deaths: {self.deaths}, Cured: {self.cured}, Discharged: {self.discharged}, Doctors: {self.doctors}, Cost: {self.cost}'
+
+
+
+def fitness(solution: SimStats):
+    """
+    Calculate the fitness of a solution
+    """
+    return solution.cost
+
+
+def random_solution(initial_patients, lambda_):
+    """
+    Generate a random solution
+    """
+    icu = random.randint(0, 50)
+    common = random.randint(0, 50)
+    d,c, a, doctors = run(icu, common, initial_patients, lambda_, calculate_cost_h)
+    return SimStats(icu, common, d, c, a, doctors, initial_patients, lambda_)
+
+
+def random_population(initial_patients, lambda_, size: int):
+    """
+    Generate a population of random solutions
+    """
+    return [random_solution(initial_patients, lambda_) for _ in range(size)]
+
+
+def select_best(population: [SimStats], initial_patients: int, lambda_:int, n: int):
+    """
+    Select the best n solutions from a population
+    """
+    return sorted(population, key=lambda x: fitness(x), reverse=False)[:n]
+
+
+def mutate(solution: SimStats, initial_patients: int, lambda_:int):
+    """
+    Mutate a solution by changing the value of icu or common beds
+    """
+    x = random.randint(0, 1)
+    if x == 0:
+        solution.icu += 1
+    else:
+        solution.common += 1
+    d,c,a,doc =  run(solution.icu, solution.common, initial_patients, lambda_, calculate_cost_h)
+    return SimStats(solution.icu, solution.common, d, c, a, doc, initial_patients, lambda_)
+
+
+def crossover(solution1: SimStats, solution2: SimStats):
+    """
+    Crossover two solutions by swapping the values of icu and common beds
+    """
+    i = random.randint(0, 1)
+    if i == 0:
+        d,c,a,doc = run(solution1.icu, solution2.common, solution1.initial_patients, solution1.lambda_, calculate_cost_h)
+        return SimStats(solution1.icu, solution2.common, d, c, a, doc, solution1.initial_patients, solution1.lambda_)
+    else:
+        d,c,a,doc = run(solution2.icu, solution1.common, solution1.initial_patients, solution1.lambda_, calculate_cost_h)
+        return SimStats(solution2.icu, solution1.common, d, c, a, doc, solution1.initial_patients, solution1.lambda_)
+
+
+def new_population(best: [SimStats], initial_patients: int, lambda_ :int, size: int):
+    """
+    Generate a new population from the best solutions
+    """
+    new_population = []
+    new_population.extend(best)
+    while len(new_population) < size:
+        solution1 = random.choice(best)
+        solution2 = random.choice(best)
+        new_solution = crossover(solution1, solution2)
+        if random.random() < 0.1:
+            new_solution = mutate(new_solution, initial_patients, lambda_)
+        new_population.append(new_solution)
+    return new_population
+
+
+def find_best_assignment(initial_patients, lambda_):
+    """
+    Find the best parameters of icu and common beds for the simulation
+    """
+    population = random_population(initial_patients, lambda_, 20)
+    for _ in range(20):
+        best = select_best(population, initial_patients, lambda_,  5)
+        population = new_population(best, initial_patients, lambda_, 20)
+    return select_best(population, initial_patients, lambda_, 1)[0]
+
+
+best = find_best_assignment(5, 10)
+print(best)

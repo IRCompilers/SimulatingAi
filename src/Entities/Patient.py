@@ -37,7 +37,7 @@ class Patient(ABC):
         amount = np.random.poisson(2) + 1
         return random.choices(population=AllSymptoms, k = amount)
 
-    def doctor_interaction(self, treatment: list[str] = [], allmedicines : list[Medicine] = []):
+    def doctor_interaction(self, treatment: list[str] = [], allmedicines : list[Medicine] = [], is_specialist = False):
         treatment = treatment if isinstance(treatment, list) else [treatment]
 
         for med in treatment:
@@ -50,19 +50,17 @@ class Patient(ABC):
                 break
 
             for sym in self.symptoms:
+                factor_cure = 0.9 if is_specialist else 0.6 if self.doc_assigned.specialty == self.Symptom_Specialty[
+                    sym] else 0.3
+                factor_side_effect = 0.1 if is_specialist else 0.3 if self.doc_assigned.specialty == self.Symptom_Specialty[
+                    sym] else 0.6
                 if current.treats(sym):
-                    sp = self.Symptom_Specialty[sym]
-                    factor_cure = 0.5
-                    factor_side_effect = 0.5
-                    if self.doc_assigned.specialty == sp:
-                        factor_cure = 0.9
-                        factor_side_effect = 0.1
                     x = random.random()
-                    if x > factor_cure:
+                    if x < factor_cure:
                         self.symptoms.remove(sym)
-                    y = random.random()
-                    if y < factor_side_effect:
-                        self.symptoms.append(random.choice(current.side_effects))
+                y = random.random()
+                if y < factor_side_effect:
+                    self.symptoms.append(random.choice(current.side_effects))
 
         self.set_specialties_needed()
 
