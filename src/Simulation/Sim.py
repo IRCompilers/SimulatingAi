@@ -188,6 +188,8 @@ class Simulation:
 
     def assign_beds(self):
         assignments = []
+        unused_icu = 0
+        unused_common = 0
         col_ind, row_ind = linear_sum_assignment(self.costs)
         for i in range(len(row_ind)):
             self.patients[row_ind[i]].bed_assigned = self.beds[col_ind[i]]
@@ -198,7 +200,16 @@ class Simulation:
             if i not in row_ind:
                 self.patients[i].bed_assigned = None
 
-        return assignments
+        used = []
+        for x in col_ind:
+            used.append(x)
+        unused = [x for x in range(len(self.beds)) if x not in used]
+
+        unused_icu = len([x for x in unused if x < self.n_icu_beds])
+        unused_common = len(unused) - unused_icu
+
+
+        return assignments, unused_icu, unused_common
 
     def add_new_patients(self):
         # poisson distribution
@@ -246,8 +257,10 @@ class Simulation:
             stats.initial_regular_patients = sum([1 for i in self.patients if i.status == "regular"])
 
             self.set_costs_matrix()
-            assignm = self.assign_beds()
+            assignm, unused_icu, unused_common = self.assign_beds()
             stats.assignments = assignm
+            stats.unused_icu = unused_icu
+            stats.unused_common = unused_common
 
             for i in self.patients:
                 stat = i.status
@@ -348,6 +361,13 @@ def get_grave_same():
 def get_regular_same():
     return [x.stay_regular for x in simulat]
 
+def get_unused_icu():
+    return [x.unused_icu for x in simulat]
+
+def get_unused_common():
+    return [x.unused_common for x in simulat]
+
+
 
 def run(icu, common, init, lambda_, h):
     deaths = []
@@ -358,8 +378,10 @@ def run(icu, common, init, lambda_, h):
     critical_same = []
     grave_same = []
     regular_same = []
+    unused_icu = []
+    unused_common = []
 
-    for i in range(1):
+    for i in range(4):
         sim = start_simulation(icu, common, init, lambda_, h)
         deaths.append(get_deaths())
         cured.append(get_cured())
@@ -369,11 +391,10 @@ def run(icu, common, init, lambda_, h):
         critical_same.append(get_critical_same())
         grave_same.append(get_grave_same())
         regular_same.append(get_regular_same())
-
-    print(f'\n\nICU: {icu} , Common: {common}, Initial Patients: {init}, Lambda for Poisson: {lambda_}')
+        unused_icu.append(get_unused_icu())
+        unused_common.append(get_unused_common())
 
     def stats(title, arr):
-
         mean_arr = [np.mean([x[day] for x in arr]) for day in range(10)]
         return sum(mean_arr)
 
@@ -385,6 +406,8 @@ def run(icu, common, init, lambda_, h):
     stats('Critical_Same', critical_same)
     stats('Grave_Same', grave_same)
     stats('Regular_Same', regular_same)
+    u_icu = stats('Unused beds', unused_icu)
+    u_c = stats('Unused common', unused_common)
 
     context = (f'I am doing a simulation of a hospital with {icu} ICU beds and {common} Common beds. The initial number '
                f'of patients is {init} and the patients are generated following a poisson distribution with lambda {lambda_}.'
@@ -403,7 +426,7 @@ def run(icu, common, init, lambda_, h):
 
     # print(genai.GenerativeModel('gemini-pro').generate_content(context).text)
 
-    return d, c, a, len(sim.doctors)
+    return d, c, a, len(sim.doctors), u_icu, u_c
 
 
 # __________INITIALIZATION___________
@@ -447,143 +470,3 @@ for i in AllSymptoms:
 
 
 
-
-
-
-#
-#
-#
-#
-class SimStats:
-    def __init__(self, icu, common, deaths, cured, discharged, doctors, initial_patients, lambda_):
-        self.icu = icu
-        self.common = common
-        self.deaths = deaths
-        self.cured = cured
-        self.discharged = discharged
-        self.doctors = doctors
-
-        self.cost = self.__cost_of_simulation()
-
-        self.initial_patients = initial_patients
-        self.lambda_ = lambda_
-
-    def __cost_of_beds(self):
-        return self.icu * 10000 + self.common * 3000
-
-    def __cost_of_doctors(self):
-        return self.doctors * 4000
-
-    def __cost_of_deaths(self):
-        return self.deaths * 3000
-
-    def __cost_of_cured(self):
-        return self.cured * 2000
-
-    def __cost_of_discharged(self):
-        return self.discharged * 2500
-
-    def __cost_of_simulation(self):
-        return (self.__cost_of_beds() + self.__cost_of_doctors() + self.__cost_of_deaths() - self.__cost_of_cured()
-                - self.__cost_of_discharged())
-
-    def __lt__(self, other):
-        return self.cost < other.cost
-
-    def __eq__(self, other):
-        return self.cost == other.cost
-
-    def __gt__(self, other):
-        return self.cost > other.cost
-
-    def __str__(self):
-        return f'ICU: {self.icu}, Common: {self.common}, Deaths: {self.deaths}, Cured: {self.cured}, Discharged: {self.discharged}, Doctors: {self.doctors}, Cost: {self.cost}'
-
-
-
-def fitness(solution: SimStats):
-    """
-    Calculate the fitness of a solution
-    """
-    return solution.cost
-
-
-def random_solution(initial_patients, lambda_):
-    """
-    Generate a random solution
-    """
-    icu = random.randint(0, 50)
-    common = random.randint(0, 50)
-    d,c, a, doctors = run(icu, common, initial_patients, lambda_, calculate_cost_h)
-    return SimStats(icu, common, d, c, a, doctors, initial_patients, lambda_)
-
-
-def random_population(initial_patients, lambda_, size: int):
-    """
-    Generate a population of random solutions
-    """
-    return [random_solution(initial_patients, lambda_) for _ in range(size)]
-
-
-def select_best(population: [SimStats], initial_patients: int, lambda_:int, n: int):
-    """
-    Select the best n solutions from a population
-    """
-    return sorted(population, key=lambda x: fitness(x), reverse=False)[:n]
-
-
-def mutate(solution: SimStats, initial_patients: int, lambda_:int):
-    """
-    Mutate a solution by changing the value of icu or common beds
-    """
-    x = random.randint(0, 1)
-    if x == 0:
-        solution.icu += 1
-    else:
-        solution.common += 1
-    d,c,a,doc =  run(solution.icu, solution.common, initial_patients, lambda_, calculate_cost_h)
-    return SimStats(solution.icu, solution.common, d, c, a, doc, initial_patients, lambda_)
-
-
-def crossover(solution1: SimStats, solution2: SimStats):
-    """
-    Crossover two solutions by swapping the values of icu and common beds
-    """
-    i = random.randint(0, 1)
-    if i == 0:
-        d,c,a,doc = run(solution1.icu, solution2.common, solution1.initial_patients, solution1.lambda_, calculate_cost_h)
-        return SimStats(solution1.icu, solution2.common, d, c, a, doc, solution1.initial_patients, solution1.lambda_)
-    else:
-        d,c,a,doc = run(solution2.icu, solution1.common, solution1.initial_patients, solution1.lambda_, calculate_cost_h)
-        return SimStats(solution2.icu, solution1.common, d, c, a, doc, solution1.initial_patients, solution1.lambda_)
-
-
-def new_population(best: [SimStats], initial_patients: int, lambda_ :int, size: int):
-    """
-    Generate a new population from the best solutions
-    """
-    new_population = []
-    new_population.extend(best)
-    while len(new_population) < size:
-        solution1 = random.choice(best)
-        solution2 = random.choice(best)
-        new_solution = crossover(solution1, solution2)
-        if random.random() < 0.1:
-            new_solution = mutate(new_solution, initial_patients, lambda_)
-        new_population.append(new_solution)
-    return new_population
-
-
-def find_best_assignment(initial_patients, lambda_):
-    """
-    Find the best parameters of icu and common beds for the simulation
-    """
-    population = random_population(initial_patients, lambda_, 20)
-    for _ in range(20):
-        best = select_best(population, initial_patients, lambda_,  5)
-        population = new_population(best, initial_patients, lambda_, 20)
-    return select_best(population, initial_patients, lambda_, 1)[0]
-
-
-best = find_best_assignment(5, 10)
-print(best)

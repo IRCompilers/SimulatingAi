@@ -89,6 +89,7 @@ def new_population(best: [[int]], doctors: [Doctor], patients: [Patient], map_sp
     Generate a new population from the best solutions
     """
     new_population = []
+    new_population.extend(best)
     while len(new_population) < size:
         solution1 = random.choice(best)
         solution2 = random.choice(best)

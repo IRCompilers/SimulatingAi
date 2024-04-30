@@ -46,6 +46,9 @@ class Day_Statistics:
         self.regular_common = 0
         self.regular_none = 0
 
+        self.unused_icu = 0
+        self.unused_common = 0
+
         self.assignments = []
 
     def __str__(self):

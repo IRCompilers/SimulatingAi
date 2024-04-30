@@ -1,4 +1,5 @@
 import random
+from src.Entities.Message import Treatment, AskSymptoms, AnswerSymptoms
 
 specialties = ['cardiology',
                'dermatology',
@@ -44,20 +45,26 @@ class Doctor():
 
     def administer_medicine(self, rag, all_medicines, map_sp_sym):
         symptoms = []
-        for p in self.patients:
-            symptoms.append(p.get_symptoms())
 
+        for p in self.patients:
+            answer = self.send_message(p, AskSymptoms(doctor=self))
+            symps = answer.symptoms
+
+            symptoms.append(symps)
+
+        print(symptoms)
         medications = rag.query_medications_for_patients(symptoms)
 
         for k, i in enumerate(self.patients):
             treatment = medications[k]
-            prob = sum([map_sp_sym[self.specialty][sym] for sym in i.symptoms])
-            if prob > 0.5:
-                i.doctor_interaction(treatment, all_medicines, True)
-            elif prob > 0.1:
-                ran_med = random.choice(all_medicines)
-                i.doctor_interaction([ran_med.name], all_medicines, False)
-            else:
-                i.die()
+            prob = [map_sp_sym[self.specialty][sym] for sym in i.symptoms]
 
+            treatment = treatment if isinstance(treatment, list) else [treatment]
+            treatment = [random.choice(all_medicines)] if sum(prob) < 0.5 else \
+                [x for x in all_medicines if x.name in treatment]
 
+            msg = Treatment(treatment, self.specialty, prob)
+            self.send_message(i, msg)
+
+    def send_message(self, patient, message):
+        return patient.receive_message(message)

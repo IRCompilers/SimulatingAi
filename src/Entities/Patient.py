@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from abc import ABC, abstractmethod
 from src.Entities.Medicine import Medicine
+from src.Entities.Message import AskSymptoms, AnswerSymptoms, Treatment
 from src.Entities.Doctor import specialties
 
 
@@ -37,32 +38,29 @@ class Patient(ABC):
         amount = np.random.poisson(2) + 1
         return random.choices(population=AllSymptoms, k = amount)
 
-    def doctor_interaction(self, treatment: list[str] = [], allmedicines : list[Medicine] = [], is_specialist = False):
-        treatment = treatment if isinstance(treatment, list) else [treatment]
+    def doctor_interaction(self, msg: Treatment):
+        treatment = msg.treatment
+        specialist = msg.specialty
+        certainty = msg.certainty
 
         for med in treatment:
-            curr = [x for x in allmedicines if x.name == med]
-            if len(curr) == 0:
-                continue
-            current = curr[0]
-
-            if len(self.symptoms) == 0:
-                break
-
-            for sym in self.symptoms:
-                factor_cure = 0.9 if is_specialist else 0.6 if self.doc_assigned.specialty == self.Symptom_Specialty[
-                    sym] else 0.3
-                factor_side_effect = 0.1 if is_specialist else 0.3 if self.doc_assigned.specialty == self.Symptom_Specialty[
-                    sym] else 0.6
-                if current.treats(sym):
+            for i,sym in enumerate(self.symptoms):
+                cr = 0.8 if certainty[i] < 0.8 and specialist == self.Symptom_Specialty[sym] else certainty[i]
+                if med.treats(sym):
                     x = random.random()
-                    if x < factor_cure:
+                    if x < cr:
                         self.symptoms.remove(sym)
-                y = random.random()
-                if y < factor_side_effect:
-                    self.symptoms.append(random.choice(current.side_effects))
+            y = random.random()
+            if y < 1 - sum(certainty):
+                self.symptoms.append(random.choice(med.side_effects))
 
         self.set_specialties_needed()
+
+    def receive_message(self, message):
+        if isinstance(message, Treatment):
+            self.doctor_interaction(message)
+        if isinstance(message, AskSymptoms):
+            return AnswerSymptoms(self.get_symptoms())
 
 
     def cure(self):
